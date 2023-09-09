@@ -1,5 +1,6 @@
 import { RequestOptions, RestyResponse } from 'resty-client';
-import {AvailableIntentsEventsEnum, MessageAPI} from '@/types';
+import {AvailableIntentsEventsEnum} from '@/types';
+import Message from "@/openapi/v1/message";
 
 export type OpenAPIRequest = <T extends Record<any, any> = any>(options: RequestOptions) => Promise<RestyResponse<T>>;
 
@@ -14,7 +15,7 @@ export interface Config {
 export interface IOpenAPI {
   config: Config;
   request: OpenAPIRequest;
-  messageApi: MessageAPI;
+  messageApi: Message;
 }
 
 export type APIVersion = `v${number}`;
