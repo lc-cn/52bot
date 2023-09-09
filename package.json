@@ -30,6 +30,7 @@
     "devDependencies": {
         "@types/node": "^20.5.9",
         "@types/ws": "^8.5.5",
+        "dtsc": "^2.3.0",
         "ts-node-dev": "^2.0.0",
         "tsconfig-paths": "^4.2.0"
     }
