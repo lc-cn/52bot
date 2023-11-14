@@ -1,15 +1,16 @@
 {
     "name": "qq-group-bot",
-    "version": "0.0.1",
+    "version": "0.0.1-alpha",
     "description": "qq群机器人SDK初版",
     "main": "lib/index.js",
     "scripts": {
         "start": "node .",
         "compile": "tsc --project tsconfig.build.json && tsc-alias -p tsconfig.build.json",
         "dtsc": "dtsc --project tsconfig.dtsc.json",
-        "build": "npm run compile && npm run dtsc",
+        "clean": "rm -rf ./lib",
+        "build": "npm run clean && npm run compile && npm run dtsc",
         "dev": "ts-node-dev -r tsconfig-paths/register ./src/test.ts",
-        "pub": "npm publish --access public",
+        "pub": "rm -rf ./lib/test.js && npm publish --access public",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "files": [

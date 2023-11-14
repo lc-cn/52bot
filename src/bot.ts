@@ -153,6 +153,7 @@ export class QQBot extends EventEmitter{
             result.message=QQBot.processMessage(payload) as Sendable
             Object.assign(result,{
                 user_id:payload.author?.id,
+                message_id:payload.event_id||payload.id,
                 sender:{
                     user_id:payload.author?.id,
                     user_openid:payload.author?.user_openid||payload.author?.member_openid
@@ -346,6 +347,7 @@ export class QQBot extends EventEmitter{
     }
 }
 export enum QQEvent {
+    AT_MESSAGE_CREATE='message.guild',
     MESSAGE_CREATE='message.guild',
     GROUP_ADD_ROBOT='notice.group.increase',
     GROUP_DEL_ROBOT='notice.group.decrease',
@@ -385,9 +387,7 @@ export namespace QQBot{
             if (prevText) {
                 result.push({
                     type:'text',
-                    data:{
-                        text:prevText
-                    }
+                    text:prevText
                 })
             }
             template = template.slice(index + match.length);
@@ -412,7 +412,7 @@ export namespace QQBot{
                 }
                 result.push({
                     type,
-                    data:Object.fromEntries(attrs.map((attr:string)=>{
+                    ...Object.fromEntries(attrs.map((attr:string)=>{
                         const [key,...values]=attr.split('=')
                         return [key.toLowerCase(),values.join('=').slice(1,-1)]
                     }))
@@ -422,9 +422,7 @@ export namespace QQBot{
         if(template){
             result.push({
                 type:'text',
-                data:{
-                    text:template
-                }
+                text:template
             })
         }
         // 2. 将附件添加到消息中
@@ -434,11 +432,9 @@ export namespace QQBot{
                 const [type]=content_type.split('/')
                 result.push({
                     type,
-                    data:{
-                        ...data,
-                        src:data.src||data.url,
-                        url:data.url||data.src
-                    }
+                    ...data,
+                    src:data.src||data.url,
+                    url:data.url||data.src
                 })
             }
         }
