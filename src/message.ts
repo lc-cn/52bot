@@ -200,6 +200,7 @@ export namespace Message {
                     hasMessages=true
                     break;
                 case 'image':
+                case 'audio':
                 case 'video':
                     files.file_type = getType(elem.type)
                     files.content='file'

@@ -65,7 +65,7 @@ export interface MessageElemMap {
         /** 视频时长（秒），接收时有效 */
         seconds?: number
     };
-    record: {
+    audio: {
         /**
          * 支持`raw silk`和`amr`文件
          * @type {string} 本地语音文件路径，例如`"/tmp/1.slk"`
@@ -118,7 +118,7 @@ export type AtElem = MessageElem<"at">;
 export type FaceElem = MessageElem<"face">;
 export type ImageElem = MessageElem<"image">;
 export type VideoElem = MessageElem<"video">;
-export type RecordElem = MessageElem<"record">;
+export type AudioElem = MessageElem<"audio">;
 export type LinkElem = MessageElem<'link'>
 export type XmlElem = MessageElem<"xml">;
 export type JsonElem = MessageElem<"json">;
@@ -144,7 +144,7 @@ export type Sendable =
     | MDElem
     | LinkElem // 链接元素
     | VideoElem // 视频消息元素
-    | RecordElem // 语音消息元素
+    | AudioElem // 语音消息元素
     | XmlElem // Xml消息元素
     | MusicElem // 音乐消息元素
     | JsonElem // Json消息元素
