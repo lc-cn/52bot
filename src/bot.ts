@@ -50,6 +50,7 @@ export class QQBot extends EventEmitter{
         const getType = (type: string) => {
             return ['image','video', 'audio'].indexOf(type) + 1
         }
+        let brief:string=''
         const messages:Dict={
             msg_type:0,
             timestamp:Number((Date.now()/1000).toFixed(0))
@@ -67,6 +68,7 @@ export class QQBot extends EventEmitter{
                 case 'reply':
                     messages.msg_id=elem.message_id
                     files.msg_id=elem.message_id
+                    brief+=`<$reply,message_id=${elem.message_id}>`
                     break;
                 case "at":
                     if(messages.content){
@@ -74,6 +76,7 @@ export class QQBot extends EventEmitter{
                     }else{
                         messages.content=`<@${elem.id||'everyone'}>`
                     }
+                    brief+=`<$at,user=${elem.id||'everyone'}>`
                     break;
                 case 'link':
                     if(messages.content){
@@ -81,6 +84,7 @@ export class QQBot extends EventEmitter{
                     }else{
                         messages.content=`<#${elem.channel_id}>`
                     }
+                    brief+=`<$link,channel=${elem.channel_id}>`
                     break;
                 case 'text':
                     if(messages.content){
@@ -89,6 +93,7 @@ export class QQBot extends EventEmitter{
                         messages.content=elem.text
                     }
                     hasMessages=true
+                    brief+=elem.text
                     break;
                 case 'face':
                     if(messages.content){
@@ -96,6 +101,7 @@ export class QQBot extends EventEmitter{
                     }else{
                         messages.content=`<emoji:${elem.id}>`
                     }
+                    brief+=`<$face,id=${elem.id}>`
                     hasMessages=true
                     break;
                 case 'image':
@@ -107,6 +113,7 @@ export class QQBot extends EventEmitter{
                     files.msg_id=source?.message_id
                     files.srv_send_msg = true
                     hasFiles=true
+                    brief+=`<${elem.type},file=${elem.file}>`
                     break;
                 case 'markdown':
                     messages.markdown = {
@@ -114,9 +121,12 @@ export class QQBot extends EventEmitter{
                     }
                     messages.msg_type = 2
                     hasMessages=true
+                    brief+=`<#markdown,content=${elem.content}>`
                     break;
                 case 'button':
                     buttons.push(elem.data)
+                    brief+=`<$button,data=${JSON.stringify(elem.data)}>`
+                    break;
             }
         }
         if(buttons.length) {
@@ -138,6 +148,7 @@ export class QQBot extends EventEmitter{
             messages:messages,
             hasFiles,
             hasMessages,
+            brief,
             files
         }
     }
@@ -150,10 +161,12 @@ export class QQBot extends EventEmitter{
             ...payload
         }
         if(['message.group','message.private','message.guild'].includes(event)){
-            result.message=QQBot.processMessage(payload) as Sendable
+            const [message,brief]=QQBot.processMessage(payload)
+            result.message=message as Sendable
             Object.assign(result,{
                 user_id:payload.author?.id,
                 message_id:payload.event_id||payload.id,
+                raw_message:brief,
                 sender:{
                     user_id:payload.author?.id,
                     user_openid:payload.author?.user_openid||payload.author?.member_openid
@@ -164,19 +177,23 @@ export class QQBot extends EventEmitter{
             switch (event){
                 case 'message.private':
                     messageEvent=new PrivateMessageEvent(this,result)
+                    this.logger.info(`recv from User(${result.user_id}): ${result.raw_message}`)
                     break;
                 case 'message.group':
                     messageEvent=new GroupMessageEvent(this,result)
+                    this.logger.info(`recv from Group(${result.group_id}): ${result.raw_message}`)
                     break;
                 case 'message.guild':
                     messageEvent=new GuildMessageEvent(this,result)
+                    this.logger.info(`recv from Guild(${result.guild_id})Channel(${result.channel_id}): ${result.raw_message}`)
+                    break;
             }
             return messageEvent
         }
         return result
     }
     async sendPrivateMessage(user_id:string,message:Sendable,source?:Quotable){
-        const {hasMessages,messages,hasFiles,files}=QQBot.parseMessageElements(message,source)
+        const {hasMessages,messages,brief,hasFiles,files}=QQBot.parseMessageElements(message,source)
         let message_id=''
         if(hasMessages){
             let {data:{id}}=await this.request.post(`/v2/users/${user_id}/messages`,messages)
@@ -187,13 +204,14 @@ export class QQBot extends EventEmitter{
             if(message_id) message_id=`${message_id}|`
             message_id=message_id+id
         }
+        this.logger.info(`send to User(${user_id}): ${brief}`)
         return {
             message_id,
             timestamp:new Date().getTime()/1000
         }
     }
     async sendGroupMessage(group_id:string,message:Sendable,source?:Quotable){
-        const {hasMessages,messages,hasFiles,files}=QQBot.parseMessageElements(message,source)
+        const {hasMessages,messages,brief,hasFiles,files}=QQBot.parseMessageElements(message,source)
         let message_id:string=''
         if(hasMessages){
             let {data:{id}}=await this.request.post(`/v2/groups/${group_id}/messages`,messages)
@@ -204,13 +222,14 @@ export class QQBot extends EventEmitter{
             if(message_id) message_id=`${message_id}|`
             message_id=message_id+id
         }
+        this.logger.info(`send to Group(${group_id}): ${brief}`)
         return {
             message_id,
             timestamp:new Date().getTime()/1000
         }
     }
     async sendGuildMessage(guild_id:string,channel_id:string,message:Sendable,source?:Quotable){
-        const {hasMessages,messages,hasFiles,files}=QQBot.parseMessageElements(message,source)
+        const {hasMessages,messages,brief,hasFiles,files}=QQBot.parseMessageElements(message,source)
         let message_id=''
         if(hasMessages){
             let {data:{id}}=await this.request.post(`/channels/${channel_id}/messages`,messages)
@@ -221,6 +240,7 @@ export class QQBot extends EventEmitter{
             if(message_id) message_id=`${message_id}|`
             message_id=message_id+id
         }
+        this.logger.info(`send to Guild(${guild_id}) Channel(${channel_id}): ${brief}`)
         return {
             message_id,
             timestamp:new Date().getTime()/1000
@@ -377,6 +397,7 @@ export namespace QQBot{
     export function processMessage(payload:Dict){
         let template=payload.content||''
         let result:MessageElem[]=[]
+        let brief:string=''
         // 1. 处理文字表情混排
         const regex = /("[^"]*?"|'[^']*?'|`[^`]*?`|“[^”]*?”|‘[^’]*?’|<[^>]+?>)/;
         while (template.length){
@@ -389,6 +410,7 @@ export namespace QQBot{
                     type:'text',
                     text:prevText
                 })
+                brief+=prevText
             }
             template = template.slice(index + match.length);
             if(match.startsWith('<')){
@@ -417,6 +439,7 @@ export namespace QQBot{
                         return [key.toLowerCase(),values.join('=').slice(1,-1)]
                     }))
                 })
+                brief+=`<${type}:${attrs.join(',')}>`
             }
         }
         if(template){
@@ -424,6 +447,7 @@ export namespace QQBot{
                 type:'text',
                 text:template
             })
+            brief+=template
         }
         // 2. 将附件添加到消息中
         if(payload.attachments){
@@ -436,11 +460,12 @@ export namespace QQBot{
                     src:data.src||data.url,
                     url:data.url||data.src
                 })
+                brief+=`<$${type},${Object.entries(data).map(([key,value])=>`${key}=${value}`).join(',')}>`
             }
         }
         delete payload.attachments
         delete payload.mentions
-        return result
+        return [result,brief]
     }
     export interface Config{
         appid:string

@@ -139,7 +139,7 @@ type WithReply<T extends MessageElem> =
 export type Sendable =
     | string // 文本
     | RepeatableCombineElem
-    | RepeatableCombineElem[] // 可重复组合的消息元素
+    | (RepeatableCombineElem|string)[] // 可重复组合的消息元素
     | WithReply<
     | MDElem
     | LinkElem // 链接元素
