@@ -6,6 +6,7 @@ import {SessionManager} from "./sessionManager";
 import {MessageElem, Quotable, Sendable} from "@/elements";
 import {Dict, LogLevel} from "@/types";
 import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
+import {EventMap} from "@/event";
 export class QQBot extends EventEmitter{
     request:AxiosInstance
     self_id:string
@@ -280,6 +281,25 @@ export enum OpCode {
     INVALID_SESSION = 9, // 当identify或resume的时候，如果参数有错，服务端会返回该消息
     HELLO = 10, // 当客户端与网关建立ws连接之后，网关下发的第一条消息
     HEARTBEAT_ACK = 11, // 当发送心跳成功之后，就会收到该消息
+}
+export interface QQBot{
+    on<T extends keyof EventMap>(event:T,callback:EventMap[T]):this
+    on<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>,callback:(...args:any[])=>void):this
+    once<T extends keyof EventMap>(event:T,callback:EventMap[T]):this
+    once<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>,callback:(...args:any[])=>void):this
+    off<T extends keyof EventMap>(event:T,callback?:EventMap[T]):this
+    off<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>,callback?:(...args:any[])=>void):this
+    emit<T extends keyof EventMap>(event:T,...args:Parameters<EventMap[T]>):boolean
+    emit<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>,...args:any[]):boolean
+    addListener<T extends keyof EventMap>(event:T,callback:EventMap[T]):this
+    addListener<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>,callback:(...args:any[])=>void):this
+    addListenerOnce<T extends keyof EventMap>(event:T,callback:EventMap[T]):this
+    addListenerOnce<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>,callback:(...args:any[])=>void):this
+    removeListener<T extends keyof EventMap>(event:T,callback?:EventMap[T]):this
+    removeListener<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>,callback?:(...args:any[])=>void):this
+    removeAllListeners<T extends keyof EventMap>(event:T):this
+    removeAllListeners<S extends string|symbol>(event:S & Exclude<string|symbol,keyof EventMap>):this
+
 }
 export namespace QQBot{
 
