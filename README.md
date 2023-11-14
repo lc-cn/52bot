@@ -1,11 +1,11 @@
 qq group bot
 # 安装依赖
 ```shell
-npm i qq-gorup-bot # or yarn add qq-gorup-bot
+npm i qq-group-bot # or yarn add qq-gorup-bot
 ```
 # 使用
 ```js
-const { QQBot } = require('qq-gorup-bot')
+const { QQBot } = require('qq-group-bot')
 const config={
 	appID: '', // qq群机器人的appID
 	token: '', // qq群机器人的appSecret
