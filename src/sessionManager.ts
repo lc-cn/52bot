@@ -205,6 +205,7 @@ export class SessionManager extends EventEmitter {
                     this.sessionRecord.seq = s;
                     this.heartbeatParam.d = s;
                 }
+                this.bot.logger.info(`connect to ${user.username}(${user.id})`)
                 this.emit(SessionEvents.READY, { eventType: SessionEvents.READY, msg: d || "" });
                 // 第一次发送心跳
                 this.bot.logger.debug(`[CLIENT] 发送第一次心跳`, this.heartbeatParam);
