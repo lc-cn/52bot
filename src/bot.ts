@@ -46,112 +46,6 @@ export class QQBot extends EventEmitter{
         this.logger=log4js.getLogger(`[QQBot:${this.appId}]`)
         this.logger.level=this.config.logLevel||='info'
     }
-    static parseMessageElements(message:Sendable,source:Quotable={}){
-        const getType = (type: string) => {
-            return ['image','video', 'audio'].indexOf(type) + 1
-        }
-        let brief:string=''
-        const messages:Dict={
-            msg_type:0,
-            timestamp:Number((Date.now()/1000).toFixed(0))
-        }
-        const files:Dict={
-            timestamp:Number((Date.now()/1000).toFixed(0))
-        }
-        let hasMessages=false,hasFiles=false,buttons=[];
-        if(!Array.isArray(message)) message=[message as any]
-        for (let elem of message) {
-            if (typeof elem === 'string') {
-                elem = {type: 'text', text: elem}
-            }
-            switch (elem.type) {
-                case 'reply':
-                    messages.msg_id=elem.message_id
-                    files.msg_id=elem.message_id
-                    brief+=`<$reply,message_id=${elem.message_id}>`
-                    break;
-                case "at":
-                    if(messages.content){
-                        messages.content+=`<@${elem.id||'everyone'}>`
-                    }else{
-                        messages.content=`<@${elem.id||'everyone'}>`
-                    }
-                    brief+=`<$at,user=${elem.id||'everyone'}>`
-                    break;
-                case 'link':
-                    if(messages.content){
-                        messages.content+=`<#${elem.channel_id}>`
-                    }else{
-                        messages.content=`<#${elem.channel_id}>`
-                    }
-                    brief+=`<$link,channel=${elem.channel_id}>`
-                    break;
-                case 'text':
-                    if(messages.content){
-                        messages.content+=elem.text
-                    }else{
-                        messages.content=elem.text
-                    }
-                    hasMessages=true
-                    brief+=elem.text
-                    break;
-                case 'face':
-                    if(messages.content){
-                        messages.content+=`<emoji:${elem.id}>`
-                    }else{
-                        messages.content=`<emoji:${elem.id}>`
-                    }
-                    brief+=`<$face,id=${elem.id}>`
-                    hasMessages=true
-                    break;
-                case 'image':
-                case 'video':
-                    files.file_type = getType(elem.type)
-                    files.content='file'
-                    files.url = elem.file;
-                    files.event_id=source!.event_id
-                    files.msg_id=source?.message_id
-                    files.srv_send_msg = true
-                    hasFiles=true
-                    brief+=`<${elem.type},file=${elem.file}>`
-                    break;
-                case 'markdown':
-                    messages.markdown = {
-                        content: elem.content
-                    }
-                    messages.msg_type = 2
-                    hasMessages=true
-                    brief+=`<#markdown,content=${elem.content}>`
-                    break;
-                case 'button':
-                    buttons.push(elem.data)
-                    brief+=`<$button,data=${JSON.stringify(elem.data)}>`
-                    break;
-            }
-        }
-        if(buttons.length) {
-            const rows=[]
-            for(let i=0;i<buttons.length;i+=4){
-                rows.push(buttons.slice(i,i+4))
-            }
-            messages.keyboard={
-                content:{
-                    rows:rows.map(row=>{
-                        return {
-                            buttons:row
-                        }
-                    })
-                }
-            }
-        }
-        return {
-            messages:messages,
-            hasFiles,
-            hasMessages,
-            brief,
-            files
-        }
-    }
     processPayload(event_id:string,event:string,payload:Dict){
         let [post_type,...sub_type]=event.split('.')
         const result:Dict={
@@ -161,7 +55,7 @@ export class QQBot extends EventEmitter{
             ...payload
         }
         if(['message.group','message.private','message.guild'].includes(event)){
-            const [message,brief]=QQBot.processMessage(payload)
+            const [message,brief]=Message.parse.call(this,payload)
             result.message=message as Sendable
             Object.assign(result,{
                 user_id:payload.author?.id,
@@ -193,7 +87,7 @@ export class QQBot extends EventEmitter{
         return result
     }
     async sendPrivateMessage(user_id:string,message:Sendable,source?:Quotable){
-        const {hasMessages,messages,brief,hasFiles,files}=QQBot.parseMessageElements(message,source)
+        const {hasMessages,messages,brief,hasFiles,files}=Message.format.call(this,message,source)
         let message_id=''
         if(hasMessages){
             let {data:{id}}=await this.request.post(`/v2/users/${user_id}/messages`,messages)
@@ -211,7 +105,7 @@ export class QQBot extends EventEmitter{
         }
     }
     async sendGroupMessage(group_id:string,message:Sendable,source?:Quotable){
-        const {hasMessages,messages,brief,hasFiles,files}=QQBot.parseMessageElements(message,source)
+        const {hasMessages,messages,brief,hasFiles,files}=Message.format.call(this,message,source)
         let message_id:string=''
         if(hasMessages){
             let {data:{id}}=await this.request.post(`/v2/groups/${group_id}/messages`,messages)
@@ -229,7 +123,7 @@ export class QQBot extends EventEmitter{
         }
     }
     async sendGuildMessage(guild_id:string,channel_id:string,message:Sendable,source?:Quotable){
-        const {hasMessages,messages,brief,hasFiles,files}=QQBot.parseMessageElements(message,source)
+        const {hasMessages,messages,brief,hasFiles,files}=Message.format.call(this,message,source)
         let message_id=''
         if(hasMessages){
             let {data:{id}}=await this.request.post(`/channels/${channel_id}/messages`,messages)
@@ -393,79 +287,6 @@ export namespace QQBot{
         access_token:string
         expires_in:number
         cache:string
-    }
-    export function processMessage(payload:Dict){
-        let template=payload.content||''
-        let result:MessageElem[]=[]
-        let brief:string=''
-        // 1. 处理文字表情混排
-        const regex = /("[^"]*?"|'[^']*?'|`[^`]*?`|“[^”]*?”|‘[^’]*?’|<[^>]+?>)/;
-        while (template.length){
-            const [match] = template.match(regex) || [];
-            if (!match) break;
-            const index = template.indexOf(match);
-            const prevText = template.slice(0, index);
-            if (prevText) {
-                result.push({
-                    type:'text',
-                    text:prevText
-                })
-                brief+=prevText
-            }
-            template = template.slice(index + match.length);
-            if(match.startsWith('<')){
-                let [type,...attrs]=match.slice(1,-1).split(',');
-                if(type.startsWith('faceType')) {
-                    type='face'
-                    attrs=attrs.map((attr:string)=>attr.replace('faceId','id'))
-                }else if(type.startsWith('@')){
-                    if(type.startsWith('@!')){
-                        const id=type.slice(2,)
-                        type='mention'
-                        attrs=Object.entries(payload.mentions.find((u:Dict)=>u.id===id)||{})
-                            .map(([key,value])=>`${key}=${value}`)
-                    }else if(type==='@everyone'){
-                        type='mention'
-                        attrs=[['all',true]]
-                    }
-                }else if(/^[a-z]+:[0-9]+$/.test(type)){
-                    attrs=[['id',type.split(':')[1]]]
-                    type='face'
-                }
-                result.push({
-                    type,
-                    ...Object.fromEntries(attrs.map((attr:string)=>{
-                        const [key,...values]=attr.split('=')
-                        return [key.toLowerCase(),values.join('=').slice(1,-1)]
-                    }))
-                })
-                brief+=`<${type}:${attrs.join(',')}>`
-            }
-        }
-        if(template){
-            result.push({
-                type:'text',
-                text:template
-            })
-            brief+=template
-        }
-        // 2. 将附件添加到消息中
-        if(payload.attachments){
-            for(const attachment of payload.attachments){
-                let {content_type,...data}=attachment
-                const [type]=content_type.split('/')
-                result.push({
-                    type,
-                    ...data,
-                    src:data.src||data.url,
-                    url:data.url||data.src
-                })
-                brief+=`<$${type},${Object.entries(data).map(([key,value])=>`${key}=${value}`).join(',')}>`
-            }
-        }
-        delete payload.attachments
-        delete payload.mentions
-        return [result,brief]
     }
     export interface Config{
         appid:string
