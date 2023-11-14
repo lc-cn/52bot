@@ -240,7 +240,7 @@ export class QQBot extends EventEmitter{
             if(message_id) message_id=`${message_id}|`
             message_id=message_id+id
         }
-        this.logger.info(`send to Guild(${guild_id}) Channel(${channel_id}): ${brief}`)
+        this.logger.info(`send to Guild(${guild_id})Channel(${channel_id}): ${brief}`)
         return {
             message_id,
             timestamp:new Date().getTime()/1000
