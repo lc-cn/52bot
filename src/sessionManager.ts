@@ -176,7 +176,15 @@ export class SessionManager extends EventEmitter {
 
     startListen() {
         this.bot.ws.on("open", () => {
-            this.bot.logger.debug("ws连接成功");
+            this.bot.logger.debug("[CLIENT] 连接成功");
+        });
+        this.bot.ws.on("close", () => {
+            this.bot.logger.debug("[CLIENT] 连接关闭");
+            this.emit(SessionEvents.EVENT_WS, { eventType: SessionEvents.DISCONNECT });
+        });
+        this.bot.ws.on("error", () => {
+            this.bot.logger.error("[CLIENT] 连接错误");
+            this.emit(SessionEvents.EVENT_WS, { eventType: SessionEvents.DISCONNECT });
         });
         this.bot.ws.on("message", (data) => {
             this.bot.logger.debug(`[CLIENT] 收到消息: ${data}`);
