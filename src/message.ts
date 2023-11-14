@@ -141,7 +141,7 @@ export namespace Message {
         delete payload.mentions
         return [result,brief]
     }
-    export function format(this:QQBot, message: Sendable,source?:Quotable) {
+    export function format(this:QQBot, message: Sendable,source:Quotable={}) {
         const getType = (type: string) => {
             return ['image','video', 'audio'].indexOf(type) + 1
         }
