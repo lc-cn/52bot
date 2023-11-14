@@ -48,7 +48,7 @@ export class QQBot extends EventEmitter{
     }
     static parseMessageElements(message:Sendable,source:Quotable={}){
         const getType = (type: string) => {
-            return ['image','file', 'audio'].indexOf(type) + 1
+            return ['image','video', 'audio'].indexOf(type) + 1
         }
         const messages:Dict={
             msg_type:0,
