@@ -197,7 +197,7 @@ export class SessionManager extends EventEmitter {
                 const { d, s } = wsRes;
                 const { session_id, user = {} } = d;
                 this.bot.self_id = user.id;
-                this.bot.nickname = user.nickname;
+                this.bot.nickname = user.username;
                 this.bot.status = user.status;
                 // 获取当前会话参数
                 if (session_id && s) {
