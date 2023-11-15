@@ -45,8 +45,8 @@ export class PrivateMessageEvent extends Message implements MessageEvent {
         super(bot,payload);
         this.sub_type='private'
     }
-    async reply(message: Sendable, quote?: boolean): Promise<any> {
-        return this.bot.sendPrivateMessage(this.user_id, message, quote ? this : undefined)
+    async reply(message: Sendable): Promise<any> {
+        return this.bot.sendPrivateMessage(this.user_id, message,this)
     }
 }
 
@@ -58,8 +58,8 @@ export class GroupMessageEvent extends Message implements MessageEvent {
         super(bot,payload);
         this.sub_type='group'
     }
-    async reply(message: Sendable, quote?: boolean) {
-        return this.bot.sendGroupMessage(this.group_id, message, quote ? this : undefined)
+    async reply(message: Sendable) {
+        return this.bot.sendGroupMessage(this.group_id, message,this)
     }
 }
 
@@ -73,8 +73,8 @@ export class GuildMessageEvent extends Message implements MessageEvent {
         this.sub_type='guild'
     }
 
-    async reply(message: Sendable, quote?: boolean) {
-        return this.bot.sendGuildMessage(this.guild_id, this.channel_id, message, quote ? this : undefined)
+    async reply(message: Sendable) {
+        return this.bot.sendGuildMessage(this.guild_id, this.channel_id, message, this)
     }
 }
 export namespace Message {
