@@ -1,80 +1,47 @@
-import axios, {AxiosInstance} from "axios";
-import {WebSocket} from "ws";
-import * as log4js from 'log4js'
-import {EventEmitter} from "events";
-import {SessionManager} from "./sessionManager";
-import {Quotable, Sendable} from "@/elements";
-import {Plugin} from "@/plugin";
-import {Dict, LogLevel} from "@/types";
-import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
-import {EventMap, QQEvent} from "@/event";
-import {GUilD_APIS} from "@/constans";
-import {Middleware} from "@/middleware";
-import {commandParser} from "@/plugins/commandParser";
-import {loadPlugin} from "@/utils";
-import {pluginManager} from "@/plugins/pluginManager";
-
-export class QQBot extends EventEmitter {
-    request: AxiosInstance
-    self_id: string
-    nickname: string
-    status: number
-    logger: log4js.Logger
-    ws: WebSocket
-    sessionManager: SessionManager
-    middlewares:Middleware[]=[]
+import { Plugin } from "./plugin";
+import { QQBot } from "./qqBot";
+import { commandParser } from "@/plugins/commandParser";
+import { pluginManager } from "@/plugins/pluginManager";
+import { GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent } from "@/message";
+import { Middleware } from "@/middleware";
+import { loadPlugin } from "@/utils";
+import { Channel } from './entries/channel'
+import { Guild } from "./entries/guild";
+import { GuildMember } from "./entries/guildMember";
+import { reloadGuilds, reloadChannels, relaodGuildMembers } from "./internal/onlinelistener";
+import { Quotable, Sendable } from "./elements";
+type ChannelMap = Map<string, Channel.Info>
+type GuildMemberMap = Map<string, GuildMember.Info>
+export class Bot extends QQBot {
+    middlewares: Middleware[] = []
     plugins: Map<string, Plugin> = new Map<string, Plugin>()
-    middleware(middleware:Middleware,before?:boolean){
-        if(before) this.middlewares.unshift(middleware)
-        else this.middlewares.push(middleware)
-        return this
-    }
-    get pluginList() {
-        return [...this.plugins.values()].filter(p=>p.status==='enabled')
-    }
-    get commandList(){
-        return this.pluginList.flatMap(plugin=>plugin.commandList)
-    }
-    findCommand(name:string){
-        return this.commandList.find(command=>command.name===name)
-    }
-    constructor(public config: QQBot.Config) {
-        super()
-        this.sessionManager = new SessionManager(this)
-        this.request = axios.create({
-            baseURL: this.config.sandbox ? 'https://sandbox.api.sgroup.qq.com' : `https://api.sgroup.qq.com`,
-            timeout: 5000,
-            headers: {
-                'User-Agent': `BotNodeSDK/0.0.1`
-            }
-        })
-        this.request.interceptors.request.use((config) => {
-            if (GUilD_APIS.some(c => {
-                if (typeof c === 'string') return c === config.url
-                return c.test(config.url)
-            })) {
-                config.headers['Authorization'] = `Bot ${this.config.appid}.${this.sessionManager.token}`
-            } else {
-                config.headers['Authorization'] = `QQBot ${this.sessionManager.access_token}`
-                config.headers['X-Union-Appid'] = this.config.appid
-            }
-            if (config['rest']) {
-                const restObj = config['rest']
-                delete config['rest']
-                for (const key in restObj) {
-                    config.url = config.url.replace(':' + key, restObj[key])
-                }
-            }
-            return config
-        })
-        this.logger = log4js.getLogger(`[QQBot:${this.config.appid}]`)
-        this.logger.level = this.config.logLevel ||= 'info'
+    guilds: Map<string, Guild.Info> = new Map<string, Guild.Info>()
+    guildMembers: Map<string, GuildMemberMap> = new Map<string, GuildMemberMap>()
+    channels: Map<string, Channel.Info> = new Map<string, Channel.Info>()
+    constructor(config: QQBot.Config) {
+        super(config)
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
         this.use(commandParser)
         this.use(pluginManager)
     }
-
+    pickGuild = Guild.from.bind(this)
+    pickChannel = Channel.from.bind(this)
+    pickGuildMember = GuildMember.from.bind(this)
+    get pluginList() {
+        return [...this.plugins.values()].filter(p => p.status === 'enabled')
+    }
+    get commandList() {
+        return this.pluginList.flatMap(plugin => plugin.commandList)
+    }
+    middleware(middleware: Middleware, before?: boolean) {
+        if (before) this.middlewares.unshift(middleware)
+        else this.middlewares.push(middleware)
+        return this
+    }
+    findCommand(name: string) {
+        return this.commandList.find(command => command.name === name)
+    }
     getSupportMiddlewares(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent) {
         return this.pluginList.filter(plugin => plugin.scope.includes(event.sub_type))
             .reduce((result, plugin) => {
@@ -94,157 +61,30 @@ export class QQBot extends EventEmitter {
         ]);
         middleware(event);
     }
-
-    removeAt(payload: Dict) {
-        const reg = new RegExp(`<@!${this.self_id}>`)
-        const isAtMe = reg.test(payload.content) && payload.mentions.some(mention => mention.id === this.self_id)
-        if (!isAtMe) return
-        payload.content = payload.content.replace(reg, '').trimStart()
-    }
-
-    processPayload(event_id: string, event: string, payload: Dict) {
-        let [post_type, ...sub_type] = event.split('.')
-        const result: Dict = {
-            event_id,
-            post_type,
-            [`${post_type}_type`]: sub_type.join('.'),
-            ...payload
-        }
-        if (['message.group', 'message.private', 'message.guild'].includes(event)) {
-            this.removeAt(payload)
-            const [message, brief] = Message.parse.call(this, payload)
-            result.message = message as Sendable
-            Object.assign(result, {
-                user_id: payload.author?.id,
-                message_id: payload.event_id || payload.id,
-                raw_message: brief,
-                sender: {
-                    user_id: payload.author?.id,
-                    user_openid: payload.author?.user_openid || payload.author?.member_openid
-                },
-                timestamp: new Date(payload.timestamp).getTime() / 1000,
-            })
-            let messageEvent: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent
-            switch (event) {
-                case 'message.private':
-                    messageEvent = new PrivateMessageEvent(this, result)
-                    this.logger.info(`recv from User(${result.user_id}): ${result.raw_message}`)
-                    break;
-                case 'message.group':
-                    messageEvent = new GroupMessageEvent(this, result)
-                    this.logger.info(`recv from Group(${result.group_id}): ${result.raw_message}`)
-                    break;
-                case 'message.guild':
-                    messageEvent = new GuildMessageEvent(this, result)
-                    this.logger.info(`recv from Guild(${result.guild_id})Channel(${result.channel_id}): ${result.raw_message}`)
-                    break;
-            }
-            return messageEvent
-        }
+    async getSelfInfo() {
+        const { data: result } = await this.request.get('/users/@me')
         return result
     }
-
-    async sendPrivateMessage(user_id: string, message: Sendable, source?: Quotable) {
-        const {hasMessages, messages, brief, hasFiles, files} = Message.format.call(this, message, source)
-        let message_id = ''
-        if (hasMessages) {
-            let {data: {id}} = await this.request.post(`/v2/users/${user_id}/messages`, messages)
-            message_id = id
-        }
-        if (hasFiles) {
-            let {data: {id}} = await this.request.post(`/v2/users/${user_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.logger.info(`send to User(${user_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
+    async createChannel(guild_id: string, channelInfo: Omit<Channel.Info, 'id'>): Promise<Channel.Info> {
+        return this.pickGuild(guild_id).createChannel(channelInfo)
     }
-
-    async sendGroupMessage(group_id: string, message: Sendable, source?: Quotable) {
-        const {hasMessages, messages, brief, hasFiles, files} = Message.format.call(this, message, source)
-        let message_id: string = ''
-        if (hasMessages) {
-            const {data:result}=await this.request.post(`/v2/groups/${group_id}/messages`, messages)
-            console.log(result)
-            message_id = result.seq
-        }
-        if (hasFiles) {
-            let {data: {id}} = await this.request.post(`/v2/groups/${group_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.logger.info(`send to Group(${group_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
+    async updateChannel({ channel_id, ...updateInfo }: { channel_id: string } & Partial<Pick<Channel.Info, 'name' | 'position' | 'parent_id' | 'private_type' | 'speak_permission'>>) {
+        return this.pickChannel(channel_id).update(updateInfo)
     }
-
-    async sendGuildMessage(guild_id: string, channel_id: string, message: Sendable, source?: Quotable) {
-        const {hasMessages, messages, brief, hasFiles, files} = Message.format.call(this, message, source)
-        let message_id = ''
-        if (hasMessages) {
-            let {data: {id}} = await this.request.post(`/channels/${channel_id}/messages`, messages)
-            message_id = id
-        }
-        if (hasFiles) {
-            console.log(files)
-            let {data: {id}} = await this.request.post(`/channels/${channel_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.logger.info(`send to Guild(${guild_id})Channel(${channel_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
+    async deleteChannel(channel_id: string) {
+        return this.pickChannel(channel_id).delete()
     }
 
     async getGuildInfo(guild_id: string) {
-        const result = await this.request.get(`/guilds/${guild_id}`)
-        const {id: _, name: guild_name, joined_at, ...guild} = result.data || {}
-        return {
-            guild_id,
-            guild_name,
-            join_time: new Date(joined_at).getTime() / 1000,
-            ...guild
-        }
+        return this.guilds.get(guild_id)
     }
 
     async getGuildRoles(guild_id: string) {
-        const result = await this.request.get(`/guilds/${guild_id}/roles`)
-        return (result.data?.roles || []).map(role => {
-            return {
-                guild_id,
-                ...role
-            }
-        })
+        return this.pickGuild(guild_id).roles
     }
 
     async getGuildList() {
-        const _getGuildList = async (after: string = undefined) => {
-            const res = await this.request.get('/users/@me/guilds', {
-                params: {
-                    after
-                }
-            })
-            if (!res.data?.length) return []
-            const result = (res.data || []).map(g => {
-                const {id: guild_id, name: guild_name, joined_at, ...guild} = g
-                return {
-                    guild_id,
-                    guild_name,
-                    join_time: new Date(joined_at).getTime() / 1000,
-                    ...guild
-                }
-            })
-            const last = result[result.length - 1]
-            return [...result, ...await _getGuildList(last.guild_id)]
-        }
-        return _getGuildList()
+        return [...this.guilds.values()]
     }
 
     async getGuildMemberList(guild_id: string) {
@@ -257,7 +97,7 @@ export class QQBot extends EventEmitter {
             })
             if (!res.data?.length) return []
             const result = (res.data || []).map(m => {
-                const {id: member_id, role, join_time, ...member} = m
+                const { id: member_id, role, join_time, ...member } = m
                 return {
                     member_id,
                     role,
@@ -271,9 +111,12 @@ export class QQBot extends EventEmitter {
         return _getGuildMemberList()
     }
 
+    async sendGuildMessage(channel_id: string, message: Sendable, source?: Quotable) {
+        return this.pickChannel(channel_id).sendMessage(message, source)
+    }
     async getGuildMemberInfo(guild_id: string, member_id: string) {
         const result = await this.request.get(`/guilds/${guild_id}/members/${member_id}`)
-        const {user: {id: _, ...member}, nick: nickname, joined_at, roles} = result.data || {}
+        const { user: { id: _, ...member }, nick: nickname, joined_at, roles } = result.data || {}
         return {
             guild_id,
             user_id: member_id,
@@ -283,141 +126,43 @@ export class QQBot extends EventEmitter {
             ...member
         }
     }
-
     async getChannelList(guild_id: string) {
-        const result = await this.request.get(`/guilds/${guild_id}/channels`)
-        return (result.data || []).map(c => {
-            const {id: channel_id, name: channel_name, ...channel} = c
-            return {
-                channel_id,
-                channel_name,
-                ...channel
-            }
-        })
+        return [...this.channels.values()]
     }
 
     async getChannelInfo(channel_id: string) {
-        const result = await this.request.get(`/channels/${channel_id}`)
-        const {id: _, name: channel_name, ...channel} = result.data || {}
-        return {
-            channel_id,
-            channel_name,
-            ...channel
-        }
+        return this.channels.get(channel_id)
     }
 
-    dispatchEvent(event: string, wsRes: any) {
-        this.logger.debug(event, wsRes)
-        const payload = wsRes.d;
-        const event_id = wsRes.id || '';
-        if (!payload || !event) return;
-        const transformEvent = QQEvent[event] || 'system'
-        this.em(transformEvent, this.processPayload(event_id, transformEvent, payload));
-    }
-
-    em(event: string, payload: Dict) {
-        const eventNames = event.split('.')
-        let prefix = ''
-        while (eventNames.length) {
-            let fullEventName = `${prefix}.${eventNames.shift()}`
-            if (fullEventName.startsWith('.')) fullEventName = fullEventName.slice(1)
-            this.emit(fullEventName, payload)
-            prefix = fullEventName
-        }
-    }
-
-    async start() {
-        await this.sessionManager.start()
-    }
-    use(name:string)
+    use(name: string)
     use(plugin: Plugin)
-    use(plugin: Plugin|string) {
-        if(typeof plugin==='string') {
-            plugin=loadPlugin(plugin)
+    use(plugin: Plugin | string) {
+        if (typeof plugin === 'string') {
+            plugin = loadPlugin(plugin)
         }
         this.plugins.set(plugin.name, plugin)
         return this
     }
-    unUse(plugin: Plugin|string) {
-        if(typeof plugin==='string') {
+    unUse(plugin: Plugin | string) {
+        if (typeof plugin === 'string') {
             this.plugins.delete(plugin)
-        }else{
+        } else {
             this.plugins.delete(plugin.name)
         }
         return this
-
+    }
+    async start() {
+        await this.sessionManager.start()
+        await reloadGuilds.call(this)
+        for (const [guild_id] of this.guilds) {
+            await reloadChannels.call(this, guild_id)
+            await relaodGuildMembers.call(this, guild_id)
+        }
+        this.logger.mark(`加载了${this.guilds.size}个频道`)
     }
 
     stop() {
 
     }
-}
 
-export interface QQBot {
-    on<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
-
-    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
-
-    once<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
-
-    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
-
-    off<T extends keyof EventMap>(event: T, callback?: EventMap[T]): this
-
-    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback?: (...args: any[]) => void): this
-
-    emit<T extends keyof EventMap>(event: T, ...args: Parameters<EventMap[T]>): boolean
-
-    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, ...args: any[]): boolean
-
-    addListener<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
-
-    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
-
-    addListenerOnce<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
-
-    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
-
-    removeListener<T extends keyof EventMap>(event: T, callback?: EventMap[T]): this
-
-    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback?: (...args: any[]) => void): this
-
-    removeAllListeners<T extends keyof EventMap>(event: T): this
-
-    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>): this
-
-}
-
-export namespace QQBot {
-
-    export interface Token {
-        access_token: string
-        expires_in: number
-        cache: string
-    }
-
-    export interface Config {
-        appid: string
-        secret: string
-        token?: string
-        sandbox?: boolean
-        maxRetry?: number
-        /**
-         * 是否移除第一个@
-         */
-        removeAt?: boolean
-        delay?:Dict<number>
-        intents?: string[]
-        logLevel?: LogLevel
-    }
-    export function getFullTargetId(message:GuildMessageEvent|GroupMessageEvent|PrivateMessageEvent){
-        switch (message.sub_type){
-            case "private":
-                return message.user_id
-            case "group":
-                return `${(message as GroupMessageEvent).group_id}:${message.user_id}`
-            case "guild":
-                return `${(message as GuildMessageEvent).guild_id}:${(message as GuildMessageEvent).channel_id}:${message.user_id}`
-        }
-    }
 }
