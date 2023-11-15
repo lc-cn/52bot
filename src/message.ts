@@ -12,11 +12,6 @@ export class Message {
     }
 
     message_id: string
-    #msg_seq:number=0
-    get msg_seq(){
-        this.#msg_seq++
-        return this.#msg_seq
-    }
     sender: Message.Sender
     user_id: string
     private _prompt:Prompt
@@ -198,12 +193,12 @@ export namespace Message {
         const messages:Dict={
             msg_type:0,
             msg_id:source?.message_id,
-            msg_seq:source?.msg_seq,
+            msg_seq:Math.round (Math.random ()*10**10),
             timestamp:Number((Date.now()/1000).toFixed(0))
         }
         const files:Dict={
             msg_id:source?.message_id,
-            msg_seq:source?.msg_seq,
+            msg_seq:Math.round (Math.random ()*10**10),
             timestamp:Number((Date.now()/1000).toFixed(0))
         }
         let hasMessages=false,hasFiles=false,buttons=[];
