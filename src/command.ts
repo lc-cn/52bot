@@ -1,4 +1,4 @@
-import { Message } from "@/message";
+import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
 import {deepClone, findLastIndex, isEmpty, trimQuote} from "@/utils";
 import {Dict} from "@/types";
 import {Sendable} from "@/elements";
@@ -9,7 +9,7 @@ type Argv = {
     args: Array<Command.Domain[Command.Type] | Command.Domain[Command.Type][]>;
     options: Record<string, Command.Domain[Command.Type] | Command.Domain[Command.Type][]>;
 };
-
+type MessageEvent=GroupMessageEvent|PrivateMessageEvent|GuildMessageEvent
 export interface HelpOptions {
     showHidden?: boolean;
     showAuth?: boolean;
@@ -236,18 +236,18 @@ export class Command<A extends any[] = [], O = {}> {
         return output;
     }
 
-    action<S extends Message = Message>(callback: Command.CallBack<S, A, O>) {
+    action<S extends MessageEvent = MessageEvent>(callback: Command.CallBack<S, A, O>) {
         this.callbacks.push(callback);
         return this as Command<A, O>;
     }
 
-    async execute<S extends Message>(
-        session: S,
-        template = session.toString(),
+    async execute<S extends MessageEvent = MessageEvent>(
+        message: S,
+        template = message.raw_message,
     ): Promise<Sendable | void> {
         let runtime: Command.RunTime<S, A, O> | void;
         try {
-            runtime = this.parse(session, template);
+            runtime = this.parse(message, template);
         } catch (e) {
             return {
                 type:'text',
