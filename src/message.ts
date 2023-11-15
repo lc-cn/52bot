@@ -14,14 +14,25 @@ export class Message {
     message_id: string
     sender: Message.Sender
     user_id: string
-    prompt:Prompt
+    private _prompt:Prompt
     constructor(public bot: QQBot, attrs: Partial<Message>) {
         Object.assign(this, attrs)
-        this.prompt=new Prompt(this.bot,this as any,this.bot.config?.delay?.prompt || 5000)
+        this._prompt=new Prompt(this.bot,this as any,this.bot.config?.delay?.prompt || 5000)
     }
     raw_message:string
     message: Sendable
-
+    get prompt(){
+        return this._prompt.prompts
+    }
+    get promptText(){
+        return this._prompt.text
+    }
+    get promptNumber(){
+        return this._prompt.number
+    }
+    get promptConfirm(){
+        return this._prompt.confirm
+    }
     get [Symbol.unscopables]() {
         return {
             bot: true

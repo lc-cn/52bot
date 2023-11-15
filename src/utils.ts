@@ -1,3 +1,7 @@
+import * as path from "path";
+import * as fs from "fs";
+import {Plugin} from "@/plugin";
+
 export const toObject = <T=any>(data: any) => {
     if (Buffer.isBuffer(data)) return JSON.parse(data.toString()) as T;
     if (typeof data === 'object') return data as T;
@@ -67,4 +71,19 @@ export function trimQuote(str: string) {
         }
     }
     return str;
+}
+export function loadPlugin(name:string){
+    const maybePath=[
+        path.resolve(__dirname,'plugins',name),
+        path.resolve(process.cwd(),'plugins',name),
+        `@qqbot/plugin-${name}`,
+        `qq-bot-plugin-${name}`,
+        name
+    ]
+    for(const path of maybePath){
+        if(fs.existsSync(path)){
+            return require(path) as Plugin;
+        }
+    }
+    throw new Error('找不到插件：'+name);
 }

@@ -62,12 +62,11 @@ export class SessionManager extends EventEmitter {
     }
 
     async getAccessToken(): Promise<QQBot.Token> {
-        const { appId } = this.bot;
-        let { secret } = this.bot.config;
+        let { secret,appid } = this.bot.config;
         const getToken = () => {
             return new Promise<QQBot.Token>((resolve, reject) => {
                 axios.post("https://bots.qq.com/app/getAppAccessToken", {
-                    appId,
+                    appId:appid,
                     clientSecret: secret
                 }).then(res => {
                     if (res.status === 200 && res.data && typeof res.data === "object") {
@@ -133,7 +132,7 @@ export class SessionManager extends EventEmitter {
         this.bot.ws = new WebSocket(this.wsUrl, {
             headers: {
                 "Authorization": "QQBot " + this.access_token,
-                "X-Union-Appid": this.bot.appId
+                "X-Union-Appid": this.bot.config.appid
             }
         });
     }

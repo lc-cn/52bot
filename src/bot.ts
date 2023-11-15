@@ -11,6 +11,7 @@ import {EventMap, QQEvent} from "@/event";
 import {GUilD_APIS} from "@/constans";
 import {Middleware} from "@/middleware";
 import {commandParser} from "@/plugins/commandParser";
+import {loadPlugin} from "@/utils";
 
 export class QQBot extends EventEmitter {
     request: AxiosInstance
@@ -34,7 +35,7 @@ export class QQBot extends EventEmitter {
         return [...this.plugins.values()].flatMap(plugin=>plugin.commandList)
     }
 
-    constructor(public appId: string, public config: QQBot.Config) {
+    constructor(public config: QQBot.Config) {
         super()
         this.sessionManager = new SessionManager(this)
         this.request = axios.create({
@@ -49,10 +50,10 @@ export class QQBot extends EventEmitter {
                 if (typeof c === 'string') return c === config.url
                 return c.test(config.url)
             })) {
-                config.headers['Authorization'] = `Bot ${this.appId}.${this.sessionManager.token}`
+                config.headers['Authorization'] = `Bot ${this.config.appid}.${this.sessionManager.token}`
             } else {
                 config.headers['Authorization'] = `QQBot ${this.sessionManager.access_token}`
-                config.headers['X-Union-Appid'] = this.appId
+                config.headers['X-Union-Appid'] = this.config.appid
             }
             if (config['rest']) {
                 const restObj = config['rest']
@@ -63,7 +64,7 @@ export class QQBot extends EventEmitter {
             }
             return config
         })
-        this.logger = log4js.getLogger(`[QQBot:${this.appId}]`)
+        this.logger = log4js.getLogger(`[QQBot:${this.config.appid}]`)
         this.logger.level = this.config.logLevel ||= 'info'
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
@@ -323,10 +324,23 @@ export class QQBot extends EventEmitter {
     async start() {
         await this.sessionManager.start()
     }
-
-    use(plugin: Plugin) {
+    use(name:string)
+    use(plugin: Plugin)
+    use(plugin: Plugin|string) {
+        if(typeof plugin==='string') {
+            plugin=loadPlugin(plugin)
+        }
         this.plugins.set(plugin.name, plugin)
         return this
+    }
+    unUse(plugin: Plugin|string) {
+        if(typeof plugin==='string') {
+            this.plugins.delete(plugin)
+        }else{
+            this.plugins.delete(plugin.name)
+        }
+        return this
+
     }
 
     stop() {
