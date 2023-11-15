@@ -15,8 +15,9 @@ export class Plugin extends EventEmitter{
         super()
         this.scope=[].concat(scope)
     }
-    middleware(middleware:Middleware){
-        this.middlewares.push(middleware)
+    middleware(middleware:Middleware,before?:boolean){
+        const method:'push'|'unshift'=before?'unshift':'push'
+        this.middlewares[method](middleware)
         this.disposes.push(()=>remove(this.middlewares,middleware))
         return this
     }

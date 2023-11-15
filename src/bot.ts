@@ -20,8 +20,13 @@ export class QQBot extends EventEmitter {
     logger: log4js.Logger
     ws: WebSocket
     sessionManager: SessionManager
+    middlewares:Middleware[]=[]
     plugins: Map<string, Plugin> = new Map<string, Plugin>()
-
+    middleware(middleware:Middleware,before?:boolean){
+        if(before) this.middlewares.unshift(middleware)
+        else this.middlewares.push(middleware)
+        return this
+    }
     get pluginList() {
         return [...this.plugins.values()]
     }
@@ -78,7 +83,10 @@ export class QQBot extends EventEmitter {
     }
 
     handleMessage(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent) {
-        const middleware = Middleware.compose(this.getSupportMiddlewares(event));
+        const middleware = Middleware.compose([
+            ...this.middlewares,
+            ...this.getSupportMiddlewares(event)
+        ]);
         middleware(event);
     }
 
@@ -379,7 +387,18 @@ export namespace QQBot {
          * 是否移除第一个@
          */
         removeAt?: boolean
+        delay?:Dict<number>
         intents?: string[]
         logLevel?: LogLevel
+    }
+    export function getFullTargetId(message:GuildMessageEvent|GroupMessageEvent|PrivateMessageEvent){
+        switch (message.sub_type){
+            case "private":
+                return message.user_id
+            case "group":
+                return `${(message as GroupMessageEvent).group_id}:${message.user_id}`
+            case "guild":
+                return `${(message as GuildMessageEvent).guild_id}:${(message as GuildMessageEvent).channel_id}:${message.user_id}`
+        }
     }
 }

@@ -1,7 +1,9 @@
 import {MessageElem, Quotable, Sendable} from "@/elements";
 import {QQBot} from "@/bot";
 import {Dict} from "@/types";
-import {trimQuote} from "@/utils";
+import {remove, trimQuote} from "@/utils";
+import {Middleware} from "@/middleware";
+import {Prompt} from "@/prompt";
 
 export class Message {
     sub_type:Message.SubType
@@ -12,9 +14,10 @@ export class Message {
     message_id: string
     sender: Message.Sender
     user_id: string
-
+    prompt:Prompt
     constructor(public bot: QQBot, attrs: Partial<Message>) {
         Object.assign(this, attrs)
+        this.prompt=new Prompt(this.bot,this as any,this.bot.config?.delay?.prompt || 5000)
     }
     raw_message:string
     message: Sendable
@@ -24,6 +27,22 @@ export class Message {
             bot: true
         }
     }
+    /**
+     * 注册一个中间件
+     * @param middleware
+     */
+    middleware(middleware: Middleware) {
+        const fullId = QQBot.getFullTargetId(this as any);
+        const newMiddleware=async (event, next) => {
+            if (fullId && QQBot.getFullTargetId(event) !== fullId) return next();
+            return middleware(event, next);
+        }
+        this.bot.middleware(newMiddleware, true);
+        return ()=>{
+            remove(this.bot.middlewares,newMiddleware)
+        }
+    }
+
 
     toJSON() {
         return Object.fromEntries(Object.keys(this)
@@ -72,7 +91,6 @@ export class GuildMessageEvent extends Message implements MessageEvent {
         super(bot,payload);
         this.sub_type='guild'
     }
-
     async reply(message: Sendable) {
         return this.bot.sendGuildMessage(this.guild_id, this.channel_id, message, this)
     }
