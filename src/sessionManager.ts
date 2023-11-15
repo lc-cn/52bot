@@ -39,6 +39,7 @@ export class SessionManager extends EventEmitter {
                         if (WebsocketCloseReason.find((v) => v.code === data.code)?.resume) {
                             this.sessionRecord = data.eventMsg;
                         }
+                        this.isReconnect=true
                         this.start();
                         this.retry += 1;
                     } else {
@@ -178,13 +179,24 @@ export class SessionManager extends EventEmitter {
         this.bot.ws.on("open", () => {
             this.bot.logger.debug("[CLIENT] 连接成功");
         });
-        this.bot.ws.on("close", () => {
+        this.bot.ws.on("close", (code) => {
             this.bot.logger.debug("[CLIENT] 连接关闭");
-            this.emit(SessionEvents.EVENT_WS, { eventType: SessionEvents.DISCONNECT });
+            this.emit(SessionEvents.EVENT_WS, {
+                eventType: SessionEvents.DISCONNECT,
+                code,
+                eventMsg:this.sessionRecord
+            });
+            if(code){
+                WebsocketCloseReason.forEach((e) => {
+                    if (e.code === code) {
+                        this.emit(SessionEvents.ERROR, { eventType: SessionEvents.ERROR, msg: e.reason });
+                    }
+                });
+            }
         });
-        this.bot.ws.on("error", () => {
+        this.bot.ws.on("error", (e) => {
             this.bot.logger.error("[CLIENT] 连接错误");
-            this.emit(SessionEvents.EVENT_WS, { eventType: SessionEvents.DISCONNECT });
+            this.emit(SessionEvents.CLOSED, { eventType: SessionEvents.CLOSED });
         });
         this.bot.ws.on("message", (data) => {
             this.bot.logger.debug(`[CLIENT] 收到消息: ${data}`);
@@ -214,6 +226,7 @@ export class SessionManager extends EventEmitter {
                     this.heartbeatParam.d = s;
                 }
                 this.bot.logger.info(`connect to ${user.username}(${user.id})`)
+                this.isReconnect=false
                 this.emit(SessionEvents.READY, { eventType: SessionEvents.READY, msg: d || "" });
                 // 第一次发送心跳
                 this.bot.logger.debug(`[CLIENT] 发送第一次心跳`, this.heartbeatParam);
