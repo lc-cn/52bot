@@ -14,7 +14,8 @@ export class Message {
     message_id: string
     #msg_seq:number=0
     get msg_seq(){
-        return this.#msg_seq++
+        this.#msg_seq++
+        return this.#msg_seq
     }
     sender: Message.Sender
     user_id: string
