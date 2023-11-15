@@ -4,6 +4,7 @@ import {Dict} from "@/types";
 import {remove, trimQuote} from "@/utils";
 import {Middleware} from "@/middleware";
 import {Prompt} from "@/prompt";
+import {randomInt} from "crypto";
 
 export class Message {
     sub_type:Message.SubType
@@ -193,12 +194,12 @@ export namespace Message {
         const messages:Dict={
             msg_type:0,
             msg_id:source?.message_id,
-            msg_seq:Math.round (Math.random ()*10**10),
+            msg_seq:randomInt(1,1000000),
             timestamp:Number((Date.now()/1000).toFixed(0))
         }
         const files:Dict={
             msg_id:source?.message_id,
-            msg_seq:Math.round (Math.random ()*10**10),
+            msg_seq:randomInt(1,1000000),
             timestamp:Number((Date.now()/1000).toFixed(0))
         }
         let hasMessages=false,hasFiles=false,buttons=[];
