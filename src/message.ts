@@ -192,9 +192,11 @@ export namespace Message {
         let brief:string=''
         const messages:Dict={
             msg_type:0,
+            msg_id:source?.message_id,
             timestamp:Number((Date.now()/1000).toFixed(0))
         }
         const files:Dict={
+            msg_id:source?.message_id,
             timestamp:Number((Date.now()/1000).toFixed(0))
         }
         let hasMessages=false,hasFiles=false,buttons=[];
