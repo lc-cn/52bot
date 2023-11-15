@@ -12,7 +12,7 @@ const config={
     sandbox: true, // 是否是沙箱环境
 	intents: ['GROUP_AT_MESSAGE_CREATE','C2C_MESSAGE_CREATE']
 }
-const bot=new QQBot(config)
+const bot=new QQBot(config.appID, config)
 
 const testPlugin=new Plugin('test')
 testPlugin
