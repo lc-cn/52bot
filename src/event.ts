@@ -10,6 +10,7 @@ export enum QQEvent {
     GROUP_AT_MESSAGE_CREATE='message.group',
 }
 export interface EventMap{
+    'message'(e:PrivateMessageEvent|GroupMessageEvent|GuildMessageEvent):void
     'message.group'(e:GroupMessageEvent):void
     'message.private'(e:PrivateMessageEvent):void
     'message.guild'(e:GuildMessageEvent):void

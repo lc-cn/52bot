@@ -4,6 +4,7 @@ import {Dict} from "@/types";
 import {trimQuote} from "@/utils";
 
 export class Message {
+    sub_type:Message.SubType
     get self_id() {
         return this.bot.self_id
     }
@@ -40,6 +41,10 @@ export interface MessageEvent {
 }
 
 export class PrivateMessageEvent extends Message implements MessageEvent {
+    constructor(bot:QQBot,payload:Partial<Message>) {
+        super(bot,payload);
+        this.sub_type='private'
+    }
     async reply(message: Sendable, quote?: boolean): Promise<any> {
         return this.bot.sendPrivateMessage(this.user_id, message, quote ? this : undefined)
     }
@@ -49,6 +54,10 @@ export class GroupMessageEvent extends Message implements MessageEvent {
     group_id: string
     group_name: string
 
+    constructor(bot:QQBot,payload:Partial<Message>) {
+        super(bot,payload);
+        this.sub_type='group'
+    }
     async reply(message: Sendable, quote?: boolean) {
         return this.bot.sendGroupMessage(this.group_id, message, quote ? this : undefined)
     }
@@ -59,6 +68,10 @@ export class GuildMessageEvent extends Message implements MessageEvent {
     guild_name: string
     channel_id: string
     channel_name: string
+    constructor(bot:QQBot,payload:Partial<Message>) {
+        super(bot,payload);
+        this.sub_type='guild'
+    }
 
     async reply(message: Sendable, quote?: boolean) {
         return this.bot.sendGuildMessage(this.guild_id, this.channel_id, message, quote ? this : undefined)
@@ -69,6 +82,7 @@ export namespace Message {
         user_id: string
         user_name: string
     }
+    export type SubType='private'|'group'|'guild'
     export function parse(this:QQBot,payload: Dict) {
         let template=payload.content||''
         let result:MessageElem[]=[]
