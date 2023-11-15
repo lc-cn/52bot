@@ -2,6 +2,7 @@ import { Message } from "@/message";
 import {deepClone, findLastIndex, isEmpty, trimQuote} from "@/utils";
 import {Dict} from "@/types";
 import {Sendable} from "@/elements";
+import {QQBot} from "@/bot";
 
 type Argv = {
     name: string;
@@ -416,6 +417,7 @@ export class Command<A extends any[] = [], O = {}> {
         return {
             args: argv.args as A,
             options: argv.options as O,
+            bot:message.bot,
             command: this,
             message,
         };
@@ -593,6 +595,7 @@ export namespace Command {
     export type RunTime<S extends object, A extends any[] = [], O = {}> = {
         args: A;
         options: O;
+        bot:QQBot;
         message: S;
         command: Command<A, O>;
     };

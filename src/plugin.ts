@@ -6,6 +6,7 @@ import {remove} from "@/utils";
 export class Plugin extends EventEmitter{
     disposes:Function[]=[]
     public scope:Plugin.Scope[]
+    status:Plugin.Status='enabled'
     commands:Map<string,Command>=new Map<string, Command>()
     middlewares:Middleware[]=[]
     get commandList(){
@@ -14,6 +15,14 @@ export class Plugin extends EventEmitter{
     constructor(public name:string,scope:Plugin.Scope|Plugin.Scope[]=['private','group','guild']) {
         super()
         this.scope=[].concat(scope)
+    }
+    enable(){
+        if(this.status==='enabled') return
+        this.status='enabled'
+    }
+    disable(){
+        if(this.status==='disabled') return
+        this.status='disabled'
     }
     middleware(middleware:Middleware,before?:boolean){
         const method:'push'|'unshift'=before?'unshift':'push'
@@ -72,4 +81,5 @@ export class Plugin extends EventEmitter{
 }
 export namespace Plugin{
     export type Scope='private'|'group'|'guild'
+    export type Status='enabled'|'disabled'
 }

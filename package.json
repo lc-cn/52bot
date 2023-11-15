@@ -1,7 +1,7 @@
 {
     "name": "ts-qqbot",
-    "version": "0.0.2",
-    "description": "qq群机器人SDK初版",
+    "version": "0.0.3",
+    "description": "qq机器人开发框架",
     "main": "lib/index.js",
     "scripts": {
         "start": "node .",
@@ -28,7 +28,6 @@
     "dependencies": {
         "axios": "^1.6.1",
         "log4js": "^6.9.1",
-        "node-silk": "^0.1.0",
         "ws": "^8.14.0"
     },
     "devDependencies": {

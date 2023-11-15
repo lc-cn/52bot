@@ -29,12 +29,14 @@ export class QQBot extends EventEmitter {
         return this
     }
     get pluginList() {
-        return [...this.plugins.values()]
+        return [...this.plugins.values()].filter(p=>p.status==='enabled')
     }
     get commandList(){
-        return [...this.plugins.values()].flatMap(plugin=>plugin.commandList)
+        return this.pluginList.flatMap(plugin=>plugin.commandList)
     }
-
+    findCommand(name:string){
+        return this.commandList.find(command=>command.name===name)
+    }
     constructor(public config: QQBot.Config) {
         super()
         this.sessionManager = new SessionManager(this)
