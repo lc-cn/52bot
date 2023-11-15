@@ -76,7 +76,7 @@ export class PrivateMessageEvent extends Message implements MessageEvent {
         super(bot,payload);
         this.sub_type='private'
     }
-    async reply(message: Sendable): Promise<any> {
+    async reply(message: Sendable) {
         return this.bot.sendPrivateMessage(this.user_id, message,this)
     }
 }
@@ -193,6 +193,7 @@ export namespace Message {
         let brief:string=''
         const messages:Dict={
             msg_type:0,
+            content:'\n',
             msg_id:source?.message_id,
             msg_seq:randomInt(1,1000000),
             timestamp:Number((Date.now()/1000).toFixed(0))

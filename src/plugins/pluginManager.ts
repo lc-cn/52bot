@@ -5,7 +5,7 @@ pluginManager
     .command('/插件列表')
     .action((runtime) => {
         return [...runtime.bot.pluginList].map((plugin, index) => {
-            return `${index + 1}.${plugin.name}(${plugin.status})`
+            return `${index + 1} ${plugin.name}(${plugin.status})`
         }).join('\n')
     })
 pluginManager

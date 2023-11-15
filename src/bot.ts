@@ -12,6 +12,7 @@ import {GUilD_APIS} from "@/constans";
 import {Middleware} from "@/middleware";
 import {commandParser} from "@/plugins/commandParser";
 import {loadPlugin} from "@/utils";
+import {pluginManager} from "@/plugins/pluginManager";
 
 export class QQBot extends EventEmitter {
     request: AxiosInstance
@@ -71,6 +72,7 @@ export class QQBot extends EventEmitter {
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
         this.use(commandParser)
+        this.use(pluginManager)
     }
 
     getSupportMiddlewares(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent) {
@@ -165,8 +167,9 @@ export class QQBot extends EventEmitter {
         const {hasMessages, messages, brief, hasFiles, files} = Message.format.call(this, message, source)
         let message_id: string = ''
         if (hasMessages) {
-            let {data: {id}} = await this.request.post(`/v2/groups/${group_id}/messages`, messages)
-            message_id = id
+            const {data:result}=await this.request.post(`/v2/groups/${group_id}/messages`, messages)
+            console.log(result)
+            message_id = result.seq
         }
         if (hasFiles) {
             let {data: {id}} = await this.request.post(`/v2/groups/${group_id}/files`, files)
