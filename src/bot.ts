@@ -3,10 +3,11 @@ import {WebSocket} from "ws";
 import * as log4js from 'log4js'
 import {EventEmitter} from "events";
 import {SessionManager} from "./sessionManager";
-import {MessageElem, Quotable, Sendable} from "@/elements";
+import { Quotable, Sendable} from "@/elements";
 import {Dict, LogLevel} from "@/types";
 import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
-import {EventMap} from "@/event";
+import {EventMap,QQEvent} from "@/event";
+import {GUilD_APIS} from "@/constans";
 export class QQBot extends EventEmitter{
     request:AxiosInstance
     self_id:string
@@ -26,7 +27,7 @@ export class QQBot extends EventEmitter{
             }
         })
         this.request.interceptors.request.use((config)=>{
-            if(QQBot.GUilD_APIS.some(c=>{
+            if(GUilD_APIS.some(c=>{
                 if(typeof c==='string') return c===config.url
                 return c.test(config.url)
             })){
@@ -47,6 +48,12 @@ export class QQBot extends EventEmitter{
         this.logger=log4js.getLogger(`[QQBot:${this.appId}]`)
         this.logger.level=this.config.logLevel||='info'
     }
+    removeAt(payload:Dict){
+        const reg=new RegExp(`<@!${this.self_id}>`)
+        const isAtMe= reg.test(payload.content) && payload.mentions.some(mention=>mention.id===this.self_id)
+        if(!isAtMe) return
+        payload.content=payload.content.replace(reg,'').trimStart()
+    }
     processPayload(event_id:string,event:string,payload:Dict){
         let [post_type,...sub_type]=event.split('.')
         const result:Dict={
@@ -56,6 +63,7 @@ export class QQBot extends EventEmitter{
             ...payload
         }
         if(['message.group','message.private','message.guild'].includes(event)){
+            this.removeAt(payload)
             const [message,brief]=Message.parse.call(this,payload)
             result.message=message as Sendable
             Object.assign(result,{
@@ -131,6 +139,7 @@ export class QQBot extends EventEmitter{
             message_id=id
         }
         if(hasFiles){
+            console.log(files)
             let {data:{id}}=await this.request.post(`/channels/${channel_id}/files`,files)
             if(message_id) message_id=`${message_id}|`
             message_id=message_id+id
@@ -242,7 +251,8 @@ export class QQBot extends EventEmitter{
         const payload = wsRes.d;
         const event_id = wsRes.id || '';
         if (!payload || !event) return;
-        this.em(QQEvent[event], this.processPayload(event_id,QQEvent[event],payload));
+        const transformEvent=QQEvent[event]||'system'
+        this.em(transformEvent, this.processPayload(event_id,transformEvent,payload));
     }
     em(event:string,payload:Dict){
         const eventNames=event.split('.')
@@ -260,27 +270,6 @@ export class QQBot extends EventEmitter{
     stop(){
 
     }
-}
-export enum QQEvent {
-    AT_MESSAGE_CREATE='message.guild',
-    MESSAGE_CREATE='message.guild',
-    GROUP_ADD_ROBOT='notice.group.increase',
-    GROUP_DEL_ROBOT='notice.group.decrease',
-    FRIEND_ADD='notice.friend.add',
-    FRIEND_DEL='notice.friend.del',
-    C2C_MESSAGE_CREATE='message.private',
-    GROUP_AT_MESSAGE_CREATE='message.group',
-}
-// 心跳参数
-export enum OpCode {
-    DISPATCH = 0, // 服务端进行消息推送
-    HEARTBEAT = 1, // 客户端发送心跳
-    IDENTIFY = 2, // 鉴权
-    RESUME = 6, // 恢复连接
-    RECONNECT = 7, // 服务端通知客户端重连
-    INVALID_SESSION = 9, // 当identify或resume的时候，如果参数有错，服务端会返回该消息
-    HELLO = 10, // 当客户端与网关建立ws连接之后，网关下发的第一条消息
-    HEARTBEAT_ACK = 11, // 当发送心跳成功之后，就会收到该消息
 }
 export interface QQBot{
     on<T extends keyof EventMap>(event:T,callback:EventMap[T]):this
@@ -314,17 +303,11 @@ export namespace QQBot{
         token?:string
         sandbox?:boolean
         maxRetry?:number
+        /**
+         * 是否移除第一个@
+         */
+        removeAt?:boolean
         intents?:string[]
         logLevel?:LogLevel
     }
-    export const GUilD_APIS:(string|RegExp)[]=[
-        "/users/@me/guilds",
-        /^\/guilds\/([a-zA-Z0-9]+)\/members\/([a-zA-Z0-9]+)$/,
-        /^\/guilds\/([a-zA-Z0-9]+)\/members$/,
-        /^\/guilds\/([a-zA-Z0-9]+)$/,
-        /^\/guilds\/([a-zA-Z0-9]+)\/channels$/,
-        /^\/guilds\/([a-zA-Z0-9]+)\/roles$/,
-        /^\/channels\/([a-zA-Z0-9]+)$/,
-        /^\/channels\/([a-zA-Z0-9]+)\/messages$/,
-    ]
 }

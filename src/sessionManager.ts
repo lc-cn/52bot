@@ -1,8 +1,10 @@
 import axios from "axios";
-import { OpCode, QQBot } from "./bot";
+import { QQBot } from "./bot";
 import { WebSocket } from "ws";
 import { toObject } from "./utils";
 import { EventEmitter } from "events";
+import {wsResData} from "@/types";
+import {Intends, OpCode, SessionEvents, WebsocketCloseReason} from "@/constans";
 
 export const MAX_RETRY = 10;
 
@@ -28,14 +30,14 @@ export class SessionManager extends EventEmitter {
 
     constructor(private bot: QQBot) {
         super();
-        this.bot.on(SessionEvents.EVENT_WS, (data) => {
+        this.on(SessionEvents.EVENT_WS, (data) => {
             switch (data.eventType) {
                 case SessionEvents.RECONNECT:
-                    this.bot.logger.debug("[CLIENT] 等待断线重连中...");
+                    this.bot.logger.mark("[CLIENT] 等待断线重连中...");
                     break;
                 case SessionEvents.DISCONNECT:
                     if (this.retry < (this.bot.config.maxRetry || MAX_RETRY)) {
-                        this.bot.logger.info("[CLIENT] 重新连接中，尝试次数：", this.retry + 1);
+                        this.bot.logger.mark("[CLIENT] 重新连接中，尝试次数：", this.retry + 1);
                         if (WebsocketCloseReason.find((v) => v.code === data.code)?.resume) {
                             this.sessionRecord = data.eventMsg;
                         }
@@ -43,7 +45,7 @@ export class SessionManager extends EventEmitter {
                         this.start();
                         this.retry += 1;
                     } else {
-                        this.bot.logger.info("[CLIENT] 超过重试次数，连接终止");
+                        this.bot.logger.mark("[CLIENT] 超过重试次数，连接终止");
                         this.emit(SessionEvents.DEAD, {
                             eventType: SessionEvents.ERROR,
                             msg: "连接已死亡，请检查网络或重启"
@@ -51,7 +53,7 @@ export class SessionManager extends EventEmitter {
                     }
                     break;
                 case SessionEvents.READY:
-                    this.bot.logger.info("[CLIENT] 连接成功");
+                    this.bot.logger.mark("[CLIENT] 连接成功");
                     this.retry = 0;
                     break;
                 default:
@@ -113,7 +115,7 @@ export class SessionManager extends EventEmitter {
         return (this.bot.config.intents || []).reduce((result, item) => {
             const value = Intends[item];
             if (value === undefined) {
-                this.bot.logger.warn(`Invalid intends(${item}),continue...`);
+                this.bot.logger.warn(`Invalid intends(${item}),skip...`);
                 return result;
             }
             return Intends[item as keyof Intends] | result;
@@ -177,10 +179,10 @@ export class SessionManager extends EventEmitter {
 
     startListen() {
         this.bot.ws.on("open", () => {
-            this.bot.logger.debug("[CLIENT] 连接成功");
+            this.bot.logger.info("[CLIENT] 连接成功");
         });
         this.bot.ws.on("close", (code) => {
-            this.bot.logger.debug("[CLIENT] 连接关闭");
+            this.bot.logger.error(`[CLIENT] 连接关闭：${code}`);
             this.emit(SessionEvents.EVENT_WS, {
                 eventType: SessionEvents.DISCONNECT,
                 code,
@@ -189,7 +191,7 @@ export class SessionManager extends EventEmitter {
             if(code){
                 WebsocketCloseReason.forEach((e) => {
                     if (e.code === code) {
-                        this.emit(SessionEvents.ERROR, { eventType: SessionEvents.ERROR, msg: e.reason });
+                        this.emit(SessionEvents.ERROR, e.reason);
                     }
                 });
             }
@@ -201,7 +203,7 @@ export class SessionManager extends EventEmitter {
         this.bot.ws.on("message", (data) => {
             this.bot.logger.debug(`[CLIENT] 收到消息: ${data}`);
             // 先将消息解析
-            const wsRes = toObject(data);
+            const wsRes = toObject<wsResData>(data);
             // 先判断websocket连接是否成功
             if (wsRes?.op === OpCode.HELLO && wsRes?.d?.heartbeat_interval) {
                 // websocket连接成功，拿到心跳周期
@@ -213,12 +215,12 @@ export class SessionManager extends EventEmitter {
 
             // 鉴权通过
             if (wsRes.t === SessionEvents.READY) {
-                this.bot.logger.debug(`[CLIENT] 鉴权通过`);
+                this.bot.logger.info(`[CLIENT] 鉴权通过`);
                 const { d, s } = wsRes;
                 const { session_id, user = {} } = d;
                 this.bot.self_id = user.id;
                 this.bot.nickname = user.username;
-                this.bot.status = user.status;
+                this.bot.status = user.status||0;
                 // 获取当前会话参数
                 if (session_id && s) {
                     this.sessionRecord.sessionID = session_id;
@@ -260,92 +262,8 @@ export class SessionManager extends EventEmitter {
                 this.bot.dispatchEvent(wsRes.t, wsRes);
             }
         });
+        this.on(SessionEvents.ERROR, (e) => {
+            this.bot.logger.error(`[CLIENT] 发生错误：${e}`);
+        })
     }
-}
-
-export const SessionEvents = {
-    CLOSED: "CLOSED",
-    READY: "READY", // 已经可以通信
-    ERROR: "ERROR", // 会话错误
-    INVALID_SESSION: "INVALID_SESSION",
-    RECONNECT: "RECONNECT", // 服务端通知重新连接
-    DISCONNECT: "DISCONNECT", // 断线
-    EVENT_WS: "EVENT_WS", // 内部通信
-    RESUMED: "RESUMED", // 重连
-    DEAD: "DEAD" // 连接已死亡，请检查网络或重启
-};
-// websocket错误原因
-export const WebsocketCloseReason = [
-    {
-        code: 4001,
-        reason: "无效的opcode"
-    },
-    {
-        code: 4002,
-        reason: "无效的payload"
-    },
-    {
-        code: 4007,
-        reason: "seq错误"
-    },
-    {
-        code: 4008,
-        reason: "发送 payload 过快，请重新连接，并遵守连接后返回的频控信息",
-        resume: true
-    },
-    {
-        code: 4009,
-        reason: "连接过期，请重连",
-        resume: true
-    },
-    {
-        code: 4010,
-        reason: "无效的shard"
-    },
-    {
-        code: 4011,
-        reason: "连接需要处理的guild过多，请进行合理分片"
-    },
-    {
-        code: 4012,
-        reason: "无效的version"
-    },
-    {
-        code: 4013,
-        reason: "无效的intent"
-    },
-    {
-        code: 4014,
-        reason: "intent无权限"
-    },
-    {
-        code: 4900,
-        reason: "内部错误，请重连"
-    },
-    {
-        code: 4914,
-        reason: "机器人已下架,只允许连接沙箱环境,请断开连接,检验当前连接环境"
-    },
-    {
-        code: 4915,
-        reason: "机器人已封禁,不允许连接,请断开连接,申请解封后再连接"
-    }
-];
-
-export enum Intends {
-    GUILDS = 1 << 0,
-    GUILD_MEMBERS = 1 << 1,
-    GUILD_MESSAGES = 1 << 9,
-    GUILD_MESSAGE_REACTIONS = 1 << 10,
-    DIRECT_MESSAGE = 1 << 12,
-    OPEN_FORUMS_EVENTS = 1 << 18,
-    AUDIO_OR_LIVE_CHANNEL_MEMBERS = 1 << 19,
-    GROUP_MESSAGE_CREATE = 1 << 24,
-    C2C_MESSAGE_CREATE = 1 << 25,
-    GROUP_AT_MESSAGE_CREATE = 1 << 25,
-    INTERACTION_CREATE = 1 << 26,
-    MESSAGE_AUDITION_CREATE = 1 << 27,
-    FORUMS_EVENTS = 1 << 28,
-    AUDIO_ACTIONS = 1 << 29,
-    PUBLIC_GUILD_MESSAGES = 1 << 30,
 }

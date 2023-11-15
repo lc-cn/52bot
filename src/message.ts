@@ -1,6 +1,7 @@
 import {MessageElem, Quotable, Sendable} from "@/elements";
 import {QQBot} from "@/bot";
 import {Dict} from "@/types";
+import {trimQuote} from "@/utils";
 
 export class Message {
     get self_id() {
@@ -14,7 +15,7 @@ export class Message {
     constructor(public bot: QQBot, attrs: Partial<Message>) {
         Object.assign(this, attrs)
     }
-
+    raw_message:string
     message: Sendable
 
     get [Symbol.unscopables]() {
@@ -95,11 +96,11 @@ export namespace Message {
                 }else if(type.startsWith('@')){
                     if(type.startsWith('@!')){
                         const id=type.slice(2,)
-                        type='mention'
+                        type='at'
                         attrs=Object.entries(payload.mentions.find((u:Dict)=>u.id===id)||{})
                             .map(([key,value])=>`${key}=${value}`)
                     }else if(type==='@everyone'){
-                        type='mention'
+                        type='at'
                         attrs=[['all',true]]
                     }
                 }else if(/^[a-z]+:[0-9]+$/.test(type)){
@@ -110,7 +111,7 @@ export namespace Message {
                     type,
                     ...Object.fromEntries(attrs.map((attr:string)=>{
                         const [key,...values]=attr.split('=')
-                        return [key.toLowerCase(),values.join('=').slice(1,-1)]
+                        return [key.toLowerCase(),trimQuote(values.join('='))]
                     }))
                 })
                 brief+=`<${type}:${attrs.join(',')}>`
