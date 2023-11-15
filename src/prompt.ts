@@ -1,9 +1,9 @@
-import {QQBot} from "@/bot";
-import {GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent} from "@/message";
-import {Sendable} from "@/elements";
-import {Dict} from "@/types";
+import { QQBot } from "@/qqBot";
+import { GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent } from "@/message";
+import { Sendable } from "@/elements";
+import { Dict } from "@/types";
 
-type MessageEvent=GuildMessageEvent|PrivateMessageEvent|GroupMessageEvent
+type MessageEvent = GuildMessageEvent | PrivateMessageEvent | GroupMessageEvent
 export class Prompt {
     private readonly fullTargetId: string;
 
@@ -253,14 +253,13 @@ export class Prompt {
                 .map((option, index) => {
                     return `${index + 1}:${option.label}`;
                 })
-                .join("\n")}${
-                option.multiple ? `\n选项之间使用'${option.separator || ","}'分隔` : ""
-            }`,
+                .join("\n")}${option.multiple ? `\n选项之间使用'${option.separator || ","}'分隔` : ""
+                }`,
             format: event => {
                 const choiceArr = event.raw_message.split(",").map(Number);
                 return Prompt.transforms["select"][option.child_type][
                     option.multiple ? "true" : "false"
-                    ](event, option.options, choiceArr) as Prompt.Select<T, M>;
+                ](event, option.options, choiceArr) as Prompt.Select<T, M>;
             },
         };
         return this.$prompt(options);
@@ -286,7 +285,7 @@ export namespace Prompt {
 
     export interface Types<CT extends keyof BaseTypes = keyof BaseTypes, M extends boolean = false>
         extends BaseTypes,
-            QuoteTypes<CT, M> {}
+        QuoteTypes<CT, M> { }
 
     export type Result<
         T extends keyof Types,
@@ -320,7 +319,7 @@ export namespace Prompt {
         // 确认提示信息
         confirm_message?: Sendable;
         // 格式化输入的值，不设置时使用默认的格式化方法
-        format?: (message:MessageEvent) => Result<T, CT, M>;
+        format?: (message: MessageEvent) => Result<T, CT, M>;
         // 验证输入的值，不设置时使用默认的验证方法
         validate?: (value: Types[T], ...args: any[]) => boolean;
         // 选项分隔符，仅在type为list或select时有效
@@ -360,16 +359,16 @@ export namespace Prompt {
         CT extends keyof BaseTypes = keyof BaseTypes,
         M extends boolean = false,
     > = {
-        [P in keyof Types]?: Transform<P>;
-    };
+            [P in keyof Types]?: Transform<P>;
+        };
     export type Transform<T extends keyof Types> = T extends keyof QuoteTypes
         ? QuoteTransform<T>
         : (message: MessageEvent) => Types[T];
     export type QuoteTransform<T extends keyof Types> = T extends "select"
         ? SelectTransform
         : T extends "list"
-            ? ListTransform
-            : unknown;
+        ? ListTransform
+        : unknown;
     export type SelectTransform = {
         [P in keyof BaseTypes]?: {
             true?: (

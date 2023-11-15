@@ -34,9 +34,8 @@ export interface MessageElemMap {
         /**
          * @type {string} 本地图片文件路径，例如`"/tmp/1.jpg"`
          * @type {Buffer} 图片`Buffer`
-         * @type {Readable} 可读的图片数据流
          */
-        file: string | Buffer | import("stream").Readable
+        file: string | Buffer
         /** 网络图片是否使用缓存 */
         cache?: boolean
         /** 流的超时时间，默认60(秒) */

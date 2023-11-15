@@ -1,6 +1,6 @@
-import {Sendable} from "@/elements";
-import {GroupMessageEvent,PrivateMessageEvent,GuildMessageEvent} from "@/message";
-type MessageEvent=GuildMessageEvent|PrivateMessageEvent|GroupMessageEvent
+import { Sendable } from "@/elements";
+import { GroupMessageEvent, PrivateMessageEvent, GuildMessageEvent } from "@/message";
+type MessageEvent = GuildMessageEvent | PrivateMessageEvent | GroupMessageEvent
 type Next = () => Promise<Sendable | null>;
 export type Middleware = Compose.Middleware<MessageEvent>;
 export namespace Middleware {

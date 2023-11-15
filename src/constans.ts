@@ -10,16 +10,6 @@ export enum OpCode {
     HELLO = 10, // 当客户端与网关建立ws连接之后，网关下发的第一条消息
     HEARTBEAT_ACK = 11, // 当发送心跳成功之后，就会收到该消息
 }
-export const GUilD_APIS:(string|RegExp)[]=[
-    "/users/@me/guilds",
-    /^\/guilds\/([a-zA-Z0-9]+)\/members\/([a-zA-Z0-9]+)$/,
-    /^\/guilds\/([a-zA-Z0-9]+)\/members$/,
-    /^\/guilds\/([a-zA-Z0-9]+)$/,
-    /^\/guilds\/([a-zA-Z0-9]+)\/channels$/,
-    /^\/guilds\/([a-zA-Z0-9]+)\/roles$/,
-    /^\/channels\/([a-zA-Z0-9]+)$/,
-    /^\/channels\/([a-zA-Z0-9]+)\/messages$/,
-]
 
 export const SessionEvents = {
     CLOSED: "CLOSED",
@@ -106,4 +96,27 @@ export enum Intends {
     FORUMS_EVENTS = 1 << 28, // 论坛事件(仅私域)
     AUDIO_ACTIONS = 1 << 29, // 音频操作事件
     PUBLIC_GUILD_MESSAGES = 1 << 30,// 公域机器人消息事件
+}
+export enum ChannelType {
+    Content = 0, // 文本频道
+    Record = 2, // 语音频道
+    ChannelGroup = 4, // 频道分组
+    Live = 10005, // 直播频道
+    App = 10006, // 应用频道
+    Forms = 10007, // 论坛频道
+}
+export enum ChannelSubType {
+    Chat = 0, // 闲聊
+    Notice = 1, // 公告
+    Strategy = 2, // 攻略
+    Black = 3, // 开黑
+}
+export enum PrivateType {
+    Public = 0, // 公开
+    Admin = 1, // 频道主和管理员
+    Some = 2, // 频道主、管理员以及指定成员
+}
+export enum SpeakPermission {
+    All = 1,// 所有人
+    Some = 2,// 频道主、管理员以及指定成员
 }

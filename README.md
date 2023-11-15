@@ -5,9 +5,9 @@ npm i ts-qqbot # or yarn add ts-qqbot
 ```
 # 使用
 ```js
-const { QQBot,Plugin } = require('ts-qqbot')
+const { Bot,Plugin } = require('ts-qqbot')
 // 创建机器人
-const bot=new QQBot({
+const bot=new Bot({
 	appid: '', // qq机器人的appID (必填)
 	token: '', // qq机器人的appToken (必填)
 	secret: '', // qq机器人的secret (必填)

@@ -1,33 +1,34 @@
-import {ArgsType, Command, defineCommand} from "@/command";
-import {EventEmitter} from "events";
-import {Middleware} from "@/middleware";
-import {remove} from "@/utils";
+import { ArgsType, Command, defineCommand } from "@/command";
+import { EventEmitter } from "events";
+import { Middleware } from "@/middleware";
+import { remove } from "@/utils";
 
-export class Plugin extends EventEmitter{
-    disposes:Function[]=[]
-    public scope:Plugin.Scope[]
-    status:Plugin.Status='enabled'
-    commands:Map<string,Command>=new Map<string, Command>()
-    middlewares:Middleware[]=[]
-    get commandList(){
+export class Plugin extends EventEmitter {
+    disposes: Function[] = []
+    public scope: Plugin.Scope[]
+    status: Plugin.Status = 'enabled'
+    commands: Map<string, Command> = new Map<string, Command>()
+    middlewares: Middleware[] = []
+    get commandList() {
         return [...this.commands.values()]
     }
-    constructor(public name:string,scope:Plugin.Scope|Plugin.Scope[]=['private','group','guild']) {
+    constructor(publicname: string, config?: Plugin.Config)
+    constructor(public name: string, scope: | Plugin.Config | Plugin.Scope | Plugin.Scope[] = ['private', 'group', 'guild']) {
         super()
-        this.scope=[].concat(scope)
+        this.scope = [].concat(scope)
     }
-    enable(){
-        if(this.status==='enabled') return
-        this.status='enabled'
+    enable() {
+        if (this.status === 'enabled') return
+        this.status = 'enabled'
     }
-    disable(){
-        if(this.status==='disabled') return
-        this.status='disabled'
+    disable() {
+        if (this.status === 'disabled') return
+        this.status = 'disabled'
     }
-    middleware(middleware:Middleware,before?:boolean){
-        const method:'push'|'unshift'=before?'unshift':'push'
+    middleware(middleware: Middleware, before?: boolean) {
+        const method: 'push' | 'unshift' = before ? 'unshift' : 'push'
         this.middlewares[method](middleware)
-        this.disposes.push(()=>remove(this.middlewares,middleware))
+        this.disposes.push(() => remove(this.middlewares, middleware))
         return this
     }
     command<S extends Command.Declare>(
@@ -79,7 +80,21 @@ export class Plugin extends EventEmitter{
         return this.commandList.find(command => command.name === name);
     }
 }
-export namespace Plugin{
-    export type Scope='private'|'group'|'guild'
-    export type Status='enabled'|'disabled'
+export namespace Plugin {
+    export interface Config {
+        /**
+         * 使用范围
+         */
+        scope: Scope | Scope[]
+        /**
+         * 描述
+         */
+        desc?: string
+        /**
+         * 匹配优先级
+         */
+        priority?: number
+    }
+    export type Scope = 'private' | 'group' | 'guild'
+    export type Status = 'enabled' | 'disabled'
 }

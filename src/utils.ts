@@ -1,29 +1,29 @@
 import * as path from "path";
 import * as fs from "fs";
-import {Plugin} from "@/plugin";
+import { Plugin } from "@/plugin";
 
-export const toObject = <T=any>(data: any) => {
+export const toObject = <T = any>(data: any) => {
     if (Buffer.isBuffer(data)) return JSON.parse(data.toString()) as T;
     if (typeof data === 'object') return data as T;
     if (typeof data === 'string') return JSON.parse(data) as T;
     // return String(data);
 };
 export function isEmpty<T>(data: T) {
-    if(!data) return true;
-    if(typeof data!=="object") return false
+    if (!data) return true;
+    if (typeof data !== "object") return false
     return Reflect.ownKeys(data).length === 0;
 }
-export function remove<T>(list:T[],item:T){
-    const index=list.indexOf(item);
-    if(index!==-1) list.splice(index,1);
+export function remove<T>(list: T[], item: T) {
+    const index = list.indexOf(item);
+    if (index !== -1) list.splice(index, 1);
 }
-export function deepClone<T extends object>(obj:T){
-    if(typeof obj!=="object") return obj
-    if(Array.isArray(obj)) return obj.map(deepClone)
-    const Constructor=obj.constructor;
+export function deepClone<T extends object>(obj: T) {
+    if (typeof obj !== "object") return obj
+    if (Array.isArray(obj)) return obj.map(deepClone)
+    const Constructor = obj.constructor;
 
-    let newObj:T=Constructor()
-    for(let key in obj){
+    let newObj: T = Constructor()
+    for (let key in obj) {
         newObj[key] = deepClone(obj[key as any])
     }
     return newObj;
@@ -42,7 +42,7 @@ export function findLastIndex<T>(list: T[], predicate: (item: T, index: number) 
     return -1;
 }
 export function trimQuote(str: string) {
-    const quotes:string[][]=[
+    const quotes: string[][] = [
         [
             '"',
             '"',
@@ -64,26 +64,26 @@ export function trimQuote(str: string) {
             '’',
         ]
     ]
-    for(let i=0;i<quotes.length;i++){
-        const [start,end]=quotes[i];
-        if(str.startsWith(start)&&str.endsWith(end)){
-            return str.slice(1,-1);
+    for (let i = 0; i < quotes.length; i++) {
+        const [start, end] = quotes[i];
+        if (str.startsWith(start) && str.endsWith(end)) {
+            return str.slice(1, -1);
         }
     }
     return str;
 }
-export function loadPlugin(name:string){
-    const maybePath=[
-        path.resolve(__dirname,'plugins',name),
-        path.resolve(process.cwd(),'plugins',name),
+export function loadPlugin(name: string) {
+    const maybePath = [
+        path.resolve(__dirname, 'plugins', name),
+        path.resolve(process.cwd(), 'plugins', name),
         `@qqbot/plugin-${name}`,
         `qq-bot-plugin-${name}`,
         name
     ]
-    for(const path of maybePath){
-        if(fs.existsSync(path)){
+    for (const path of maybePath) {
+        if (fs.existsSync(path)) {
             return require(path) as Plugin;
         }
     }
-    throw new Error('找不到插件：'+name);
+    throw new Error('找不到插件：' + name);
 }

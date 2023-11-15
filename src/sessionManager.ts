@@ -1,10 +1,10 @@
 import axios from "axios";
-import { QQBot } from "./bot";
+import { QQBot } from "./qqBot";
 import { WebSocket } from "ws";
 import { toObject } from "./utils";
 import { EventEmitter } from "events";
-import {wsResData} from "@/types";
-import {Intends, OpCode, SessionEvents, WebsocketCloseReason} from "@/constans";
+import { wsResData } from "@/types";
+import { Intends, OpCode, SessionEvents, WebsocketCloseReason } from "@/constans";
 
 export const MAX_RETRY = 10;
 
@@ -41,7 +41,7 @@ export class SessionManager extends EventEmitter {
                         if (WebsocketCloseReason.find((v) => v.code === data.code)?.resume) {
                             this.sessionRecord = data.eventMsg;
                         }
-                        this.isReconnect=true
+                        this.isReconnect = true
                         this.start();
                         this.retry += 1;
                     } else {
@@ -62,11 +62,11 @@ export class SessionManager extends EventEmitter {
     }
 
     async getAccessToken(): Promise<QQBot.Token> {
-        let { secret,appid } = this.bot.config;
+        let { secret, appid } = this.bot.config;
         const getToken = () => {
             return new Promise<QQBot.Token>((resolve, reject) => {
                 axios.post("https://bots.qq.com/app/getAppAccessToken", {
-                    appId:appid,
+                    appId: appid,
                     clientSecret: secret
                 }).then(res => {
                     if (res.status === 200 && res.data && typeof res.data === "object") {
@@ -185,9 +185,9 @@ export class SessionManager extends EventEmitter {
             this.emit(SessionEvents.EVENT_WS, {
                 eventType: SessionEvents.DISCONNECT,
                 code,
-                eventMsg:this.sessionRecord
+                eventMsg: this.sessionRecord
             });
-            if(code){
+            if (code) {
                 WebsocketCloseReason.forEach((e) => {
                     if (e.code === code) {
                         this.emit(SessionEvents.ERROR, e.reason);
@@ -219,7 +219,7 @@ export class SessionManager extends EventEmitter {
                 const { session_id, user = {} } = d;
                 this.bot.self_id = user.id;
                 this.bot.nickname = user.username;
-                this.bot.status = user.status||0;
+                this.bot.status = user.status || 0;
                 // 获取当前会话参数
                 if (session_id && s) {
                     this.sessionRecord.sessionID = session_id;
@@ -227,7 +227,7 @@ export class SessionManager extends EventEmitter {
                     this.heartbeatParam.d = s;
                 }
                 this.bot.logger.info(`connect to ${user.username}(${user.id})`)
-                this.isReconnect=false
+                this.isReconnect = false
                 this.emit(SessionEvents.READY, { eventType: SessionEvents.READY, msg: d || "" });
                 // 第一次发送心跳
                 this.bot.logger.debug(`[CLIENT] 发送第一次心跳`, this.heartbeatParam);
