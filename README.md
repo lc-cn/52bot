@@ -59,6 +59,40 @@ bot.use(testPlugin)
 // 启动机器人
 bot.start()
 ```
+## 发送消息
+```javascript
+const {Bot} = require('ts-qqbot')
+const bot=new Bot({
+    // ...
+})
+// 只有启动后，才能发送
+bot.start().then(()=>{
+    // 频道被动回复
+    bot.on('message.guild',(e)=>{
+        e.reply('hello world')
+    })
+    // 频道私信被动回复
+    bot.on('message.direct',(e)=>{
+        e.reply('hello world')
+    })
+    // 群聊被动回复
+    bot.on('message.group',(e)=>{
+        e.reply('hello world')
+    })
+    // 私聊被动回复
+    bot.on('message.private',(e)=>{
+        e.reply('hello world')
+    })
+    // 主动发送频道消息
+    bot.sendGuildMessage(channel_id,'hello')
+    // 主动发送群消息
+    bot.sendGroupMessage(group_id,'hello')
+    // 主动发送私聊消息
+    bot.sendPrivateMessage(user_id,'hello')
+    // 主动发送频道消息(需要先调用bot.createDmsSession(guild_id)生成私信会话
+    bot.sendDmsMessage(guild_id,'hello')
+})
+```
 ##  插件开发
 - 新建文件`testPlugin.js`
 ```javascript
