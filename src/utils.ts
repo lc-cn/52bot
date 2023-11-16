@@ -107,3 +107,6 @@ export function loadPlugins(dir: string):Plugin[] {
     })
         .filter(Boolean);
 }
+export async function saveToLocal(path:string,data:Buffer){
+    await fs.promises.writeFile(path,data)
+}

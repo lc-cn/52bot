@@ -96,7 +96,17 @@ export class GroupMessageEvent extends Message implements MessageEvent {
         return this.bot.sendGroupMessage(this.group_id, message, this)
     }
 }
-
+export class DirectMessageEvent extends Message implements MessageEvent{
+    user_id: string
+    channel_id:string
+    constructor(bot:Bot,payload:Partial<Message>){
+        super(bot,payload);
+        this.sub_type='direct'
+    }
+    reply(message: Sendable) {
+        return this.bot.sendDmsMessage(this.guild_id, message, this)
+    }
+}
 export class GuildMessageEvent extends Message implements MessageEvent {
     guild_id: string
     guild_name: string
@@ -135,7 +145,7 @@ export namespace Message {
         user_id: string
         user_name: string
     }
-    export type SubType = 'private' | 'group' | 'guild'
+    export type SubType = 'private' | 'group' | 'guild'|'direct'
     export function parse(this: QQBot, payload: Dict) {
         let template = payload.content || ''
         let result: MessageElem[] = []
@@ -209,7 +219,7 @@ export namespace Message {
         delete payload.mentions
         return [result, brief]
     }
-    export function format(this: QQBot, message: Sendable, source: Quotable = {}) {
+    export async function format(this: QQBot, message: Sendable, source: Quotable = {}) {
         const getType = (type: string) => {
             return ['image', 'video', 'audio'].indexOf(type) + 1
         }
@@ -277,7 +287,7 @@ export namespace Message {
                 case 'video':
                     files.file_type = getType(elem.type)
                     files.content = 'file'
-                    files.url = elem.file;
+                    files.url =elem.file
                     files.event_id = source!.event_id
                     files.msg_id = source?.message_id
                     files.srv_send_msg = true

@@ -1,9 +1,9 @@
 import * as path from "path";
 import { Plugin } from "./plugin";
 import { QQBot } from "./qqBot";
-import { GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent } from "@/message";
+import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
 import { Middleware } from "@/middleware";
-import {loadPlugin, loadPlugins} from "@/utils";
+import {loadPlugin, loadPlugins, saveToLocal} from "@/utils";
 import { Channel } from './entries/channel'
 import { Guild } from "./entries/guild";
 import { GuildMember } from "./entries/guildMember";
@@ -14,15 +14,18 @@ import {
     reloadGroupMemberList,
     reloadGuildMembers, reloadFriendList
 } from "./internal/onlinelistener";
-import { Quotable, Sendable } from "./elements";
+import {AudioElem, ImageElem, Quotable, Sendable, VideoElem} from "./elements";
 import {Group} from "@/entries/group";
 import {Friend} from "@/entries/friend";
 import {GroupMember} from "@/entries/groupMember";
+import * as fs from "fs";
+import * as crypto from "crypto";
 
 type GuildMemberMap = Map<string, GuildMember.Info>
 type GroupMemberMap = Map<string,GroupMember.Info>
 export class Bot extends QQBot {
     middlewares: Middleware[] = []
+    private data_dir:string
     plugins: Map<string, Plugin> = new Map<string, Plugin>()
     guilds: Map<string, Guild.Info> = new Map<string, Guild.Info>()
     guildMembers: Map<string, GuildMemberMap> = new Map<string, GuildMemberMap>()
@@ -30,8 +33,11 @@ export class Bot extends QQBot {
     groups:Map<string,Group.Info> = new Map<string,Group.Info>()
     groupMembers:Map<string,GroupMemberMap> = new Map<string,GroupMemberMap>()
     friends:Map<string,Friend.Info> = new Map<string,Friend.Info>()
-    constructor(config: QQBot.Config) {
+    constructor(config: Bot.Config) {
         super(config)
+        const dataDir = config.data_dir||path.resolve(process.cwd(), 'data')
+        if(!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
+        this.data_dir = dataDir
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
     }
@@ -120,7 +126,52 @@ export class Bot extends QQBot {
     }
 
     async sendGuildMessage(channel_id: string, message: Sendable, source?: Quotable) {
-        return this.pickChannel(channel_id).sendMessage(message, source)
+        try{
+            return this.pickChannel(channel_id).sendMessage(message, source)
+        }catch {
+            const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
+            let message_id = ''
+            if (hasMessages) {
+                let { data: { id } } = await this.request.post(`/channels/${channel_id}/messages`, messages)
+                message_id = id
+            }
+            if (hasFiles) {
+                console.log(files)
+                let { data: { id } } = await this.request.post(`/channels/${channel_id}/files`, files)
+                if (message_id) message_id = `${message_id}|`
+                message_id = message_id + id
+            }
+            this.logger.info(`send to Channel(${channel_id}): ${brief}`)
+            return {
+                message_id,
+                timestamp: new Date().getTime() / 1000
+            }
+        }
+    }
+    async createDmsSession(guild_id:string,user_id:string){
+        const {data:result}=await this.request.post(`/users/@me/dms`,{
+            recipient_id:user_id,
+            source_guild_id:guild_id
+        })
+        return result
+    }
+    async sendDmsMessage(guild_id:string,message:Sendable,source?:Quotable){
+        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
+        let message_id = ''
+        if (hasMessages) {
+            let { data: { id } } = await this.request.post(`/dms/${guild_id}/messages`, messages)
+            message_id = id
+        }
+        if (hasFiles) {
+            let { data: { id } } = await this.request.post(`/dms/${guild_id}/files`, files)
+            if (message_id) message_id = `${message_id}|`
+            message_id = message_id + id
+        }
+        this.logger.info(`send to Direct(${guild_id}): ${brief}`)
+        return {
+            message_id,
+            timestamp: new Date().getTime() / 1000
+        }
     }
     async getChannelList(guild_id: string) {
         return [...this.channels.values()]
@@ -174,5 +225,7 @@ export class Bot extends QQBot {
     }
 }
 export namespace Bot{
-    export interface Config extends QQBot.Config{}
+    export interface Config extends QQBot.Config{
+        data_dir?: string
+    }
 }

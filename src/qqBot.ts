@@ -3,9 +3,9 @@ import {WebSocket} from "ws";
 import * as log4js from 'log4js'
 import {EventEmitter} from "events";
 import {SessionManager} from "./sessionManager";
-import { Quotable, Sendable} from "@/elements";
+import {AudioElem, ImageElem, Quotable, Sendable, VideoElem} from "@/elements";
 import { Dict, LogLevel} from "@/types";
-import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
+import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
 import {EventMap, QQEvent} from "@/event";
 import { Bot } from "./bot";
 
@@ -49,7 +49,6 @@ export class QQBot extends EventEmitter {
         if (!isAtMe) return
         payload.content = payload.content.replace(reg, '').trimStart()
     }
-
     processPayload(event_id: string, event: string, payload: Dict) {
         let [post_type, ...sub_type] = event.split('.')
         const result: Dict = {
@@ -58,7 +57,7 @@ export class QQBot extends EventEmitter {
             [`${post_type}_type`]: sub_type.join('.'),
             ...payload
         }
-        if (['message.group', 'message.private', 'message.guild'].includes(event)) {
+        if (['message.group', 'message.private', 'message.guild','message.direct'].includes(event)) {
             this.removeAt(payload)
             const [message, brief] = Message.parse.call(this, payload)
             result.message = message as Sendable
@@ -72,7 +71,7 @@ export class QQBot extends EventEmitter {
                 },
                 timestamp: new Date(payload.timestamp).getTime() / 1000,
             })
-            let messageEvent: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent
+            let messageEvent: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent|DirectMessageEvent
             switch (event) {
                 case 'message.private':
                     messageEvent = new PrivateMessageEvent(this as unknown as Bot, result)
@@ -86,6 +85,10 @@ export class QQBot extends EventEmitter {
                     messageEvent = new GuildMessageEvent(this as unknown as Bot, result)
                     this.logger.info(`recv from Guild(${result.guild_id})Channel(${result.channel_id}): ${result.raw_message}`)
                     break;
+                case 'message.direct':
+                    messageEvent=new DirectMessageEvent(this as unknown as Bot,result)
+                    this.logger.info(`recv from Direct(${result.guild_id}): ${result.raw_message}`)
+                    break;
             }
             return messageEvent
         }
@@ -93,7 +96,7 @@ export class QQBot extends EventEmitter {
     }
 
     async sendPrivateMessage(user_id: string, message: Sendable, source?: Quotable) {
-        const { hasMessages, messages, brief, hasFiles, files } = Message.format.call(this, message, source)
+        const { hasMessages, messages, brief, hasFiles, files } = await Message.format.call(this, message, source)
         let message_id = ''
         if (hasMessages) {
             let { data: { id } } = await this.request.post(`/v2/users/${user_id}/messages`, messages)
@@ -111,7 +114,7 @@ export class QQBot extends EventEmitter {
         }
     }
     async sendGroupMessage(group_id: string, message: Sendable, source?: Quotable) {
-        const { hasMessages, messages, brief, hasFiles, files } = Message.format.call(this, message, source)
+        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
         let message_id: string = ''
         if (hasMessages) {
             const { data: result } = await this.request.post(`/v2/groups/${group_id}/messages`, messages)

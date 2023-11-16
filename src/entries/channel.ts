@@ -17,7 +17,7 @@ export class Channel extends Contactable {
         return channel
     }
     async sendMessage(message:Sendable,source?:Quotable){
-        const { hasMessages, messages, brief, hasFiles, files } = Message.format.call(this.bot, message, source)
+        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this.bot, message, source)
         let message_id = ''
         if (hasMessages) {
             let { data: { id } } = await this.bot.request.post(`/channels/${this.channel_id}/messages`, messages)

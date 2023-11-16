@@ -1,5 +1,6 @@
 import {GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent} from "@/message";
 export enum QQEvent {
+    DIRECT_MESSAGE_CREATE='message.direct',
     AT_MESSAGE_CREATE='message.guild',
     MESSAGE_CREATE='message.guild',
     GUILD_CREATE='notice.guild.increase',

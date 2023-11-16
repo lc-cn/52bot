@@ -14,7 +14,7 @@ export class Plugin extends EventEmitter {
     }
     constructor(public name: string, config: Plugin.Config={}){
         super()
-        this.scope = [].concat(config.scope||['guild', 'group', 'private'])
+        this.scope = [].concat(config.scope||['guild', 'group', 'private','direct'])
     }
     enable() {
         if (this.status === 'enabled') return
@@ -94,6 +94,6 @@ export namespace Plugin {
          */
         priority?: number
     }
-    export type Scope = 'private' | 'group' | 'guild'
+    export type Scope = 'private' | 'group' | 'guild'|'direct'
     export type Status = 'enabled' | 'disabled'
 }
