@@ -104,7 +104,7 @@ export class DirectMessageEvent extends Message implements MessageEvent{
         this.sub_type='direct'
     }
     reply(message: Sendable) {
-        return this.bot.sendDmsMessage(this.guild_id, message, this)
+        return this.bot.sendDirectMessage(this.guild_id, message, this)
     }
 }
 export class GuildMessageEvent extends Message implements MessageEvent {

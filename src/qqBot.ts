@@ -113,6 +113,50 @@ export class QQBot extends EventEmitter {
             timestamp: new Date().getTime() / 1000
         }
     }
+    async createDmsSession(guild_id:string,user_id:string){
+        const {data:result}=await this.request.post(`/users/@me/dms`,{
+            recipient_id:user_id,
+            source_guild_id:guild_id
+        })
+        return result
+    }
+    async sendDirectMessage(guild_id:string,message:Sendable,source?:Quotable){
+        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
+        let message_id = ''
+        if (hasMessages) {
+            let { data: { id } } = await this.request.post(`/dms/${guild_id}/messages`, messages)
+            message_id = id
+        }
+        if (hasFiles) {
+            let { data: { id } } = await this.request.post(`/dms/${guild_id}/files`, files)
+            if (message_id) message_id = `${message_id}|`
+            message_id = message_id + id
+        }
+        this.logger.info(`send to Direct(${guild_id}): ${brief}`)
+        return {
+            message_id,
+            timestamp: new Date().getTime() / 1000
+        }
+    }
+    async sendGuildMessage(channel_id: string, message: Sendable, source?: Quotable) {
+        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
+        let message_id = ''
+        if (hasMessages) {
+            let { data: { id } } = await this.request.post(`/channels/${channel_id}/messages`, messages)
+            message_id = id
+        }
+        if (hasFiles) {
+            console.log(files)
+            let { data: { id } } = await this.request.post(`/channels/${channel_id}/files`, files)
+            if (message_id) message_id = `${message_id}|`
+            message_id = message_id + id
+        }
+        this.logger.info(`send to Channel(${channel_id}): ${brief}`)
+        return {
+            message_id,
+            timestamp: new Date().getTime() / 1000
+        }
+    }
     async sendGroupMessage(group_id: string, message: Sendable, source?: Quotable) {
         const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
         let message_id: string = ''
