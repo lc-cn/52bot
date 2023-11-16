@@ -12,7 +12,9 @@ export class Message {
     get self_id() {
         return this.bot.self_id
     }
-
+    guild_id?:string
+    channel_id?: string
+    group_id?:string
     message_id: string
     sender: Message.Sender
     user_id: string
@@ -22,6 +24,7 @@ export class Message {
         this._prompt = new Prompt(this.bot, this as any, this.bot.config?.delay?.prompt || 5000)
     }
     raw_message: string
+    message_reference?:{message_id:string}
     message: Sendable
     get prompt() {
         return this._prompt.prompts
@@ -85,7 +88,6 @@ export class PrivateMessageEvent extends Message implements MessageEvent {
 export class GroupMessageEvent extends Message implements MessageEvent {
     group_id: string
     group_name: string
-
     constructor(bot: Bot, payload: Partial<Message>) {
         super(bot, payload);
         this.sub_type = 'group'
@@ -99,10 +101,22 @@ export class GuildMessageEvent extends Message implements MessageEvent {
     guild_id: string
     guild_name: string
     channel_id: string
+    get guild(){
+        return this.bot.pickGuild(this.guild_id)
+    }
+    get channel(){
+        return this.bot.pickChannel(this.channel_id)
+    }
     channel_name: string
     constructor(bot: Bot, payload: Partial<Message>) {
         super(bot, payload);
         this.sub_type = 'guild'
+    }
+    async asAnnounce(){
+        return this.channel.setAnnounce(this.message_id)
+    }
+    async pin(){
+        return this.channel.pinMessage(this.message_id)
     }
     async reply(message: Sendable) {
         return this.bot.sendGuildMessage(this.channel_id, message, this)

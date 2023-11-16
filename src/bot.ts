@@ -8,16 +8,29 @@ import { loadPlugin } from "@/utils";
 import { Channel } from './entries/channel'
 import { Guild } from "./entries/guild";
 import { GuildMember } from "./entries/guildMember";
-import { reloadGuilds, reloadChannels, relaodGuildMembers } from "./internal/onlinelistener";
+import {
+    reloadGuilds,
+    reloadChannels,
+    reloadGroupList,
+    reloadGroupMemberList,
+    reloadGuildMembers, reloadFriendList
+} from "./internal/onlinelistener";
 import { Quotable, Sendable } from "./elements";
-type ChannelMap = Map<string, Channel.Info>
+import {Group} from "@/entries/group";
+import {Friend} from "@/entries/friend";
+import {GroupMember} from "@/entries/groupMember";
+
 type GuildMemberMap = Map<string, GuildMember.Info>
+type GroupMemberMap = Map<string,GroupMember.Info>
 export class Bot extends QQBot {
     middlewares: Middleware[] = []
     plugins: Map<string, Plugin> = new Map<string, Plugin>()
     guilds: Map<string, Guild.Info> = new Map<string, Guild.Info>()
     guildMembers: Map<string, GuildMemberMap> = new Map<string, GuildMemberMap>()
     channels: Map<string, Channel.Info> = new Map<string, Channel.Info>()
+    groups:Map<string,Group.Info> = new Map<string,Group.Info>()
+    groupMembers:Map<string,GroupMemberMap> = new Map<string,GroupMemberMap>()
+    friends:Map<string,Friend.Info> = new Map<string,Friend.Info>()
     constructor(config: QQBot.Config) {
         super(config)
         this.handleMessage = this.handleMessage.bind(this)
@@ -26,8 +39,11 @@ export class Bot extends QQBot {
         this.use(pluginManager)
     }
     pickGuild = Guild.from.bind(this)
-    pickChannel = Channel.from.bind(this)
     pickGuildMember = GuildMember.from.bind(this)
+    pickGroup = Group.from.bind(this)
+    pickGroupMember = GroupMember.from.bind(this)
+    pickFriend = Friend.from.bind(this)
+    pickChannel = Channel.from.bind(this)
     get pluginList() {
         return [...this.plugins.values()].filter(p => p.status === 'enabled')
     }
@@ -88,43 +104,26 @@ export class Bot extends QQBot {
     }
 
     async getGuildMemberList(guild_id: string) {
-        const _getGuildMemberList = async (after: string = undefined) => {
-            const res = await this.request.get(`/guilds/${guild_id}/members`, {
-                params: {
-                    after,
-                    limit: 100
-                }
-            })
-            if (!res.data?.length) return []
-            const result = (res.data || []).map(m => {
-                const { id: member_id, role, join_time, ...member } = m
-                return {
-                    member_id,
-                    role,
-                    join_time: new Date(join_time).getTime() / 1000,
-                    ...member
-                }
-            })
-            const last = result[result.length - 1]
-            return [...result, ...await _getGuildMemberList(last.member_id)]
-        }
-        return _getGuildMemberList()
+        return [...this.guildMembers.get(guild_id).values()]
+    }
+    async getGuildMemberInfo(guild_id: string, member_id: string) {
+        return this.guildMembers.get(guild_id)?.get(member_id)
+    }
+    async getGroupMemberList(group_id: string) {
+        return [...this.groupMembers.get(group_id).values()]
+    }
+    async getGroupMemberInfo(group_id: string, member_id: string) {
+        return this.groupMembers.get(group_id)?.get(member_id)
+    }
+    async getFriendList() {
+        return [...this.friends.values()]
+    }
+    async getFriendInfo(friend_id: string) {
+        return this.friends.get(friend_id)
     }
 
     async sendGuildMessage(channel_id: string, message: Sendable, source?: Quotable) {
         return this.pickChannel(channel_id).sendMessage(message, source)
-    }
-    async getGuildMemberInfo(guild_id: string, member_id: string) {
-        const result = await this.request.get(`/guilds/${guild_id}/members/${member_id}`)
-        const { user: { id: _, ...member }, nick: nickname, joined_at, roles } = result.data || {}
-        return {
-            guild_id,
-            user_id: member_id,
-            roles,
-            join_time: new Date(joined_at).getTime() / 1000,
-            nickname,
-            ...member
-        }
     }
     async getChannelList(guild_id: string) {
         return [...this.channels.values()]
@@ -156,13 +155,20 @@ export class Bot extends QQBot {
         await reloadGuilds.call(this)
         for (const [guild_id] of this.guilds) {
             await reloadChannels.call(this, guild_id)
-            await relaodGuildMembers.call(this, guild_id)
+            await reloadGuildMembers.call(this, guild_id)
         }
-        this.logger.mark(`加载了${this.guilds.size}个频道`)
+        await reloadGroupList.call(this)
+        for (const [group_id] of this.groups) {
+            await reloadGroupMemberList.call(this, group_id)
+        }
+        await reloadFriendList.call(this)
+        this.logger.mark(`加载了${this.friends.size}个好友，${this.groups.size}个群，${this.guilds.size}个频道`)
     }
 
     stop() {
 
     }
-
+}
+export namespace Bot{
+    export interface Config extends QQBot.Config{}
 }

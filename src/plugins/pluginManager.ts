@@ -1,6 +1,6 @@
 import {Plugin} from "@/plugin";
 
-export const pluginManager = new Plugin('pluginManager');
+export const pluginManager = new Plugin('插件管理');
 pluginManager
     .command('/插件列表')
     .action((runtime) => {

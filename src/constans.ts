@@ -107,7 +107,7 @@ export enum ChannelType {
 }
 export enum ChannelSubType {
     Chat = 0, // 闲聊
-    Notice = 1, // 公告
+    Announces = 1, // 公告
     Strategy = 2, // 攻略
     Black = 3, // 开黑
 }

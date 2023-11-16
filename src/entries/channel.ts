@@ -1,6 +1,6 @@
 import { ChannelSubType, ChannelType, PrivateType, SpeakPermission } from "@/constans";
 import { Contactable } from "./contactable";
-import { Bot, Message, Quotable, Sendable } from "..";
+import {Bot, Message, Quotable, Sendable, UpdatePermissionParams} from "@";
 const channelCache: WeakMap<Channel.Info, Channel> = new WeakMap<Channel.Info, Channel>()
 export class Channel extends Contactable {
     constructor(bot:Bot,public info:Channel.Info){
@@ -41,7 +41,42 @@ export class Channel extends Contactable {
     }
     async delete(){
         const result = await this.bot.request.delete(`/channels/${this.channel_id}`)
-        return result.status === 200
+        return result.status === 204
+    }
+    async getPermissionOfRole(role_id:string){
+        const {data:result} = await this.bot.request.get(`/channels/${this.channel_id}/roles/${role_id}/permissions`)
+        return result
+    }
+    async setAnnounce(message_id:string){
+        const {data:result}=await this.bot.request.post(`/guilds/${this.guild_id}/announces`,{
+            message_id:message_id,
+            channel_id:this.channel_id
+        })
+        return result
+    }
+    async updatePermissionOfRole(role_id:string,permission:UpdatePermissionParams){
+        const result = await this.bot.request.put(`/channels/${this.channel_id}/roles/${role_id}/permissions`,permission)
+        return result.status===204
+    }
+    async getMemberPermission(member_id:string){
+        const {data:result} = await this.bot.request.get(`/channels/${this.channel_id}/members/${member_id}/permissions`)
+        return result
+    }
+    async updateMemberPermission(member_id:string,permission:UpdatePermissionParams){
+        const result = await this.bot.request.put(`/channels/${this.channel_id}/members/${member_id}/permissions`,permission)
+        return result.status===204
+    }
+    async getPins():Promise<string[]>{
+        const {data:{message_ids=[]}={}} = await this.bot.request.get(`/channels/${this.channel_id}/pins`)
+        return message_ids
+    }
+    async pinMessage(message_id:string){
+        const {data:result}= await this.bot.request.post(`/channels/${this.channel_id}/pins/${message_id}`)
+        return result
+    }
+    async unpinMessage(message_id:string){
+        const {data:result}= await this.bot.request.delete(`/channels/${this.channel_id}/pins/${message_id}`)
+        return result
     }
 }
 export namespace Channel {

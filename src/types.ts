@@ -35,3 +35,16 @@ export interface ChannelInfo {
     application_id?: string
     permissions?: string
 }
+export type UpdatePermissionParams={
+    add?:string
+    remove?:string
+}
+export type ApiBaseInfo={
+    path:string
+    method:"GET"|"POST"|"DELETE"|"PATCH"|"PUT"
+}
+export type RecommendInfo={
+    channel_id:string
+    introduce:string
+}
+

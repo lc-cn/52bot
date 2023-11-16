@@ -191,7 +191,7 @@ export class Command<A extends any[] = [], O = {}> {
             });
             return result.join(" ");
         };
-        const output: string[] = [`${this.name} ${createArgsOutput()} ${this.config.desc || ""}`];
+        const output: string[] = [`<cmd cmd="${this.name}"> ${createArgsOutput()} ${this.config.desc || ""}`];
         if (!simple) {
             if (this.aliasNames.length) output.push(` alias:${this.aliasNames.join(",")}`);
             if (this.sugarsConfig.length)
@@ -659,7 +659,7 @@ export namespace Command {
         number: number;
         boolean: boolean;
         any: Sendable;
-        user_id: number | string;
+        user_id: string;
         regexp: RegExp;
         date: Date;
         json: Dict;
@@ -777,9 +777,9 @@ export namespace Command {
     registerDomain("regexp", source => new RegExp(source));
     registerDomain("user_id", {
         transform: source => {
-            const autoCloseMention = source.match(/^<mention user_id="(\S+)"[^\/]*?\/>$/);
+            const autoCloseMention = source.match(/^<at user_id="(\S+)"[^\/]*?\/>$/);
             const twinningMention = source.match(
-                /^<mention user_id="(\S+)"[^>]*?>[^<]*?<\/mention>$/,
+                /^<at user_id="(\S+)"[^>]*?>[^<]*?<\/at>$/,
             );
             const matched = autoCloseMention || twinningMention;
             if (!matched) {
@@ -787,9 +787,9 @@ export namespace Command {
                     throw new Error(
                         `user_id should be number or <at user_id="string|number"/> or <at user_id="string|number"></at>`,
                     );
-                return +source;
+                return source;
             }
-            return matched[1].match(/^\d+$/) ? +matched[1] : matched[1];
+            return matched[1];
         },
         validate: value => {
             return ["string", "number"].includes(getType(value));

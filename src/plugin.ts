@@ -12,10 +12,9 @@ export class Plugin extends EventEmitter {
     get commandList() {
         return [...this.commands.values()]
     }
-    constructor(publicname: string, config?: Plugin.Config)
-    constructor(public name: string, scope: | Plugin.Config | Plugin.Scope | Plugin.Scope[] = ['private', 'group', 'guild']) {
+    constructor(public name: string, config: Plugin.Config={}){
         super()
-        this.scope = [].concat(scope)
+        this.scope = [].concat(config.scope||['guild', 'group', 'private'])
     }
     enable() {
         if (this.status === 'enabled') return
@@ -85,7 +84,7 @@ export namespace Plugin {
         /**
          * 使用范围
          */
-        scope: Scope | Scope[]
+        scope?: Scope | Scope[]
         /**
          * 描述
          */

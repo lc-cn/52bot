@@ -1,6 +1,6 @@
 import {Plugin} from "@/plugin";
 
-export const commandParser=new Plugin('commandParser');
+export const commandParser=new Plugin('指令解析器');
 commandParser.middleware(async (event, next)=>{
     const commands = event.bot.getSupportCommands(event);
     for (const command of commands) {

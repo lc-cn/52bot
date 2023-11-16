@@ -1,3 +1,6 @@
+import {Contactable} from "@/entries/contactable";
+import {Bot} from "@";
+
 export namespace User{
     export interface Info{
         id:string

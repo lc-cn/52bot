@@ -141,6 +141,13 @@ export class QQBot extends EventEmitter {
 
     em(event: string, payload: Dict) {
         const eventNames = event.split('.')
+        const [post_type,detail_type,...sub_type] = eventNames
+        Object.assign(payload,{
+            post_type,
+            [`${post_type}_type`]: detail_type,
+            sub_type: sub_type.join('.'),
+            ...payload
+        })
         let prefix = ''
         while (eventNames.length) {
             let fullEventName = `${prefix}.${eventNames.shift()}`

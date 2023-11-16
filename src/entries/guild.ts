@@ -1,4 +1,4 @@
-import { Bot, Message, Quotable, Sendable } from "..";
+import {ApiBaseInfo, Bot, Quotable, RecommendInfo, Sendable} from "@";
 import { Channel } from "./channel";
 import { Contactable } from "./contactable";
 import { GuildMember } from "./guildMember";
@@ -19,6 +19,13 @@ export class Guild extends Contactable {
         const guild = new Guild(this, guildInfo)
         guildCache.set(guildInfo, guild)
         return guild
+    }
+    async recommendChannels(announce_type:1|2,recommendList:RecommendInfo[]){
+        const { data: result } = await this.bot.request.post(`/guilds/${this.guild_id}/announces`,{
+            announces_type:announce_type,
+            recommend_channels:recommendList
+        })
+        return result
     }
     async createChannel(channelInfo:Omit<Channel.Info,'id'>):Promise<Channel.Info>{
         const { data: result } = await this.bot.request.post(`/guilds/${this.guild_id}/channels`, channelInfo)
@@ -48,6 +55,46 @@ export class Guild extends Contactable {
     async deleteRole(role_id:string){
         const result = await this.bot.request.delete(`/guilds/{guild_id}/roles/${role_id}`)
         return result.status===204
+    }
+    async getAccessApis(){
+        const {data:result} = await this.bot.request.get(`/guilds/${this.guild_id}/api_permission`)
+        return result.apis||[]
+    }
+    async applyAccess(channel_id:string,apiInfo:ApiBaseInfo,desc?:string){
+        const {data:result} = await this.bot.request.post(`/guilds/${this.guild_id}/api_permission/demand`,{
+            channel_id,
+            api_identify:apiInfo,
+            desc,
+        })
+        return result
+    }
+    async unMute(){
+        return this.mute(0,0)
+    }
+    async mute(seconds:number,end_time?:number){
+        const result=await this.bot.request.put(`/guilds/${this.guild_id}/mute`,{
+            mute_seconds:`${seconds}`,
+            mute_end_timestamp:`${end_time}`
+        })
+        return result.status===204
+
+    }
+    async unMuteMembers(member_ids:string[]){
+        return this.muteMembers(member_ids,0,0)
+    }
+    async muteMembers(member_ids:string[],seconds:number,end_time?:number){
+        const result=await this.bot.request.put(`/guilds/${this.guild_id}/mute`,{
+            mute_seconds:`${seconds}`,
+            mute_end_timestamp:`${end_time}`,
+            user_ids:member_ids
+        })
+        return result.status===200
+    }
+    async unMuteMember(member_id:string){
+        return this.pickMember(member_id).unMute()
+    }
+    async muteMember(member_id:string,seconds:number,end_time?:number){
+        return this.pickMember(member_id).mute(seconds,end_time)
     }
     sendMessage(channel_id:string,message:Sendable,source?:Quotable){
         return this.pickChannel(channel_id).sendMessage(message,source)
