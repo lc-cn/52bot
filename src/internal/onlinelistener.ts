@@ -7,7 +7,7 @@ export async function reloadGuilds(this:Bot){
             params: {
                 after
             }
-        })
+        }).catch(()=>({data:[]}))// 私域不支持获取频道列表，做个兼容
         if (!res.data?.length) return []
         const result = (res.data || []).map(g => {
             const { joined_at, ...guild } = g

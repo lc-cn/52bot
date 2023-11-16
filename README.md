@@ -1,9 +1,9 @@
-ts-qqbot
-# 安装依赖
+# ts-qqbot
+## 安装依赖
 ```shell
 npm i ts-qqbot # or yarn add ts-qqbot
 ```
-# 使用
+## 使用
 ```js
 const { Bot,Plugin } = require('ts-qqbot')
 // 创建机器人
@@ -56,5 +56,30 @@ testPlugin
 // 引用插件
 bot.use(testPlugin)
 // 启动机器人
+bot.start()
+```
+##  插件开发
+- 新建文件`testPlugin.js`
+```javascript
+const {Plugin} = require('ts-qqbot')
+
+const testPlugin=new Plugin('test')
+// 定义指令
+testPlugin
+	.command('/百科 <keyword:string>')
+	.action(async(_,keyword)=>{
+		const {data}=await axios.get(`https://baike.deno.dev/item/${encodeURIComponent(keyword)}?encoding=text`)
+		return data
+	})
+module.exports=testPlugin
+```
+## 使用插件
+```javascript
+const {Bot} = require('ts-qqbot')
+const testPlugin=require('./testPlugin')
+const bot=new Bot({
+    // ...
+})
+bot.use(testPlugin)
 bot.start()
 ```
