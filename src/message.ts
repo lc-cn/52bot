@@ -102,10 +102,18 @@ export class GuildMessageEvent extends Message implements MessageEvent {
     guild_name: string
     channel_id: string
     get guild(){
-        return this.bot.pickGuild(this.guild_id)
+        try{
+            return this.bot.pickGuild(this.guild_id)
+        }catch {
+            return null
+        }
     }
     get channel(){
-        return this.bot.pickChannel(this.channel_id)
+        try{
+            return this.bot.pickChannel(this.channel_id)
+        } catch {
+            return null
+        }
     }
     channel_name: string
     constructor(bot: Bot, payload: Partial<Message>) {
@@ -208,7 +216,7 @@ export namespace Message {
         let brief: string = ''
         const messages: Dict = {
             msg_type: 0,
-            content: '\n',
+            content: '',
             msg_id: source?.message_id,
             msg_seq: randomInt(1, 1000000),
             timestamp: Number((Date.now() / 1000).toFixed(0))

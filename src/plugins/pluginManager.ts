@@ -1,6 +1,6 @@
 import {Plugin} from "@/plugin";
 
-export const pluginManager = new Plugin('插件管理');
+const pluginManager = new Plugin('插件管理');
 pluginManager
     .command('/插件列表')
     .action((runtime) => {
@@ -27,3 +27,4 @@ pluginManager.command('/禁用插件 [name:string]')
     plugin.disable()
     return '插件已禁用'
 })
+export default pluginManager

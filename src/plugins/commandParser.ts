@@ -1,6 +1,6 @@
 import {Plugin} from "@/plugin";
 
-export const commandParser=new Plugin('指令解析器');
+const commandParser=new Plugin('指令解析器');
 commandParser.middleware(async (event, next)=>{
     const commands = event.bot.getSupportCommands(event);
     for (const command of commands) {
@@ -11,6 +11,7 @@ commandParser.middleware(async (event, next)=>{
 })
 commandParser.command('/帮助 [name:string]')
     .desc("显示指令帮助")
+    .sugar(/^(\S+)帮助$/,{args:['$1']})
     .option("-H [showHidden:boolean] 显示隐藏指令")
     .action(({ options,bot, message }, target) => {
         const supportCommands = bot.getSupportCommands(message as any);
@@ -32,12 +33,13 @@ commandParser.command('/帮助 [name:string]')
                 )
                 .flat();
             output.push("输入 “/帮助 [command name]” 展示指定指令帮助");
-            return output.filter(Boolean).join("\n");
+            return '\n'+output.filter(Boolean).join("\n");
         }
 
-        return bot
+        return '\n'+bot
             .findCommand(target)
             ?.help({ ...options, dep: 1 }, supportCommands)
             .concat("输入 “/帮助 [command name]” 展示指定指令帮助")
             .join("\n");
     });
+export default commandParser

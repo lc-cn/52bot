@@ -1,10 +1,9 @@
+import * as path from "path";
 import { Plugin } from "./plugin";
 import { QQBot } from "./qqBot";
-import { commandParser } from "@/plugins/commandParser";
-import { pluginManager } from "@/plugins/pluginManager";
-import { GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent } from "@/message";
+import { GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent } from "@/message";
 import { Middleware } from "@/middleware";
-import { loadPlugin } from "@/utils";
+import {loadPlugin, loadPlugins} from "@/utils";
 import { Channel } from './entries/channel'
 import { Guild } from "./entries/guild";
 import { GuildMember } from "./entries/guildMember";
@@ -35,8 +34,6 @@ export class Bot extends QQBot {
         super(config)
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
-        this.use(commandParser)
-        this.use(pluginManager)
     }
     pickGuild = Guild.from.bind(this)
     pickGuildMember = GuildMember.from.bind(this)
@@ -163,6 +160,13 @@ export class Bot extends QQBot {
         }
         await reloadFriendList.call(this)
         this.logger.mark(`加载了${this.friends.size}个好友，${this.groups.size}个群，${this.guilds.size}个频道`)
+    }
+    loadFromDir(dir: string) {
+        const plugins=loadPlugins(dir)
+        for(const plugin of plugins){
+            this.use(plugin)
+        }
+        return this
     }
 
     stop() {

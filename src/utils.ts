@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as fs from "fs";
-import { Plugin } from "@/plugin";
+import {Plugin} from "@/plugin";
 
 export const toObject = <T = any>(data: any) => {
     if (Buffer.isBuffer(data)) return JSON.parse(data.toString()) as T;
@@ -8,15 +8,18 @@ export const toObject = <T = any>(data: any) => {
     if (typeof data === 'string') return JSON.parse(data) as T;
     // return String(data);
 };
+
 export function isEmpty<T>(data: T) {
     if (!data) return true;
     if (typeof data !== "object") return false
     return Reflect.ownKeys(data).length === 0;
 }
+
 export function remove<T>(list: T[], item: T) {
     const index = list.indexOf(item);
     if (index !== -1) list.splice(index, 1);
 }
+
 export function deepClone<T extends object>(obj: T) {
     if (typeof obj !== "object") return obj
     if (Array.isArray(obj)) return obj.map(deepClone)
@@ -29,6 +32,7 @@ export function deepClone<T extends object>(obj: T) {
     return newObj;
 
 }
+
 /**
  * 寻找数组中最后一个符合条件的元素下标
  * @param list 数组
@@ -41,6 +45,7 @@ export function findLastIndex<T>(list: T[], predicate: (item: T, index: number) 
     }
     return -1;
 }
+
 export function trimQuote(str: string) {
     const quotes: string[][] = [
         [
@@ -72,7 +77,8 @@ export function trimQuote(str: string) {
     }
     return str;
 }
-export function loadPlugin(name: string) {
+
+export function loadPlugin(name: string):Plugin {
     const maybePath = [
         path.resolve(__dirname, 'plugins', name),
         path.resolve(process.cwd(), 'plugins', name),
@@ -82,8 +88,22 @@ export function loadPlugin(name: string) {
     ]
     for (const path of maybePath) {
         if (fs.existsSync(path)) {
-            return require(path) as Plugin;
+            const result=require(path)
+            if(result.default) return result.default
+            return result
         }
     }
     throw new Error('找不到插件：' + name);
+}
+
+export function loadPlugins(dir: string):Plugin[] {
+    dir=path.resolve(__dirname,dir)
+    return fs.readdirSync(dir).map(name => {
+        try {
+            return loadPlugin(name)
+        } catch {
+            return null
+        }
+    })
+        .filter(Boolean);
 }

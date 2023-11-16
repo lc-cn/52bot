@@ -1,6 +1,6 @@
 import {GuildMessageEvent, Plugin} from "@";
 
-export const guildManager = new Plugin('频道管理',{
+const guildManager = new Plugin('频道管理',{
     scope: 'guild'
 });
 guildManager.command('/置顶 [message_id:string]')
@@ -30,3 +30,4 @@ guildManager.command('/禁言 [user_id:user_id]')
         const result=await message.guild.muteMember(user_id,options.time)
         return result?`已将(${user_id})禁言时长设为${options.time}秒`:'禁言失败'
     })
+export default guildManager

@@ -191,7 +191,7 @@ export class Command<A extends any[] = [], O = {}> {
             });
             return result.join(" ");
         };
-        const output: string[] = [`<cmd cmd="${this.name}"> ${createArgsOutput()} ${this.config.desc || ""}`];
+        const output: string[] = [`${this.name} ${createArgsOutput()} ${this.config.desc || ""}`];
         if (!simple) {
             if (this.aliasNames.length) output.push(` alias:${this.aliasNames.join(",")}`);
             if (this.sugarsConfig.length)
