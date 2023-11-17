@@ -113,7 +113,7 @@ export class QQBot extends EventEmitter {
             timestamp: new Date().getTime() / 1000
         }
     }
-    async createDmsSession(guild_id:string,user_id:string){
+    async createDirectSession(guild_id:string,user_id:string){
         const {data:result}=await this.request.post(`/users/@me/dms`,{
             recipient_id:user_id,
             source_guild_id:guild_id

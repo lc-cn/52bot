@@ -89,8 +89,8 @@ bot.start().then(()=>{
     bot.sendGroupMessage(group_id,'hello')
     // 主动发送私聊消息
     bot.sendPrivateMessage(user_id,'hello')
-    // 主动发送频道消息(需要先调用bot.createDmsSession(guild_id)生成私信会话
-    bot.sendDmsMessage(guild_id,'hello')
+    // 主动发送频道消息，注：需要先调用bot.createDirectSession(guild_id,user_id)创建私信会话，此处传入的guild_id为创建的session会话中返回的guild_id
+    bot.sendDirectMessage(guild_id,'hello')
 })
 ```
 ##  插件开发
