@@ -8,6 +8,7 @@ import { Dict, LogLevel} from "@/types";
 import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
 import {EventMap, QQEvent} from "@/event";
 import { Bot } from "./bot";
+import {User} from "@/entries/user";
 
 export class QQBot extends EventEmitter {
     request: AxiosInstance
@@ -61,12 +62,16 @@ export class QQBot extends EventEmitter {
             this.removeAt(payload)
             const [message, brief] = Message.parse.call(this, payload)
             result.message = message as Sendable
+            const member=payload.member
+            const permissions=member?.roles||[]
             Object.assign(result, {
                 user_id: payload.author?.id,
                 message_id: payload.event_id || payload.id,
                 raw_message: brief,
                 sender: {
                     user_id: payload.author?.id,
+                    user_name:payload.author?.username,
+                    permissions:['normal'].concat(permissions),
                     user_openid: payload.author?.user_openid || payload.author?.member_openid
                 },
                 timestamp: new Date(payload.timestamp).getTime() / 1000,
@@ -264,13 +269,15 @@ export namespace QQBot {
         logLevel?: LogLevel
     }
     export function getFullTargetId(message:GuildMessageEvent|GroupMessageEvent|PrivateMessageEvent){
-        switch (message.sub_type){
+        switch (message.message_type){
+            case "direct":
+                return `direct-${message.guild_id}`
             case "private":
-                return message.user_id
+                return `private-${message.user_id}`
             case "group":
-                return `${(message as GroupMessageEvent).group_id}:${message.user_id}`
+                return `group-${(message as GroupMessageEvent).group_id}:${message.user_id}`
             case "guild":
-                return `${(message as GuildMessageEvent).guild_id}:${(message as GuildMessageEvent).channel_id}:${message.user_id}`
+                return `guild-${(message as GuildMessageEvent).channel_id}:${message.user_id}`
         }
     }
 }

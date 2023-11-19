@@ -3,6 +3,7 @@ import {deepClone, findLastIndex, isEmpty, trimQuote} from "@/utils";
 import {Dict} from "@/types";
 import {Sendable} from "@/elements";
 import {Bot} from "@/bot";
+import {User} from "@/entries/user";
 
 type Argv = {
     name: string;
@@ -83,6 +84,8 @@ export class Command<A extends any[] = [], O = {}> {
     callbacks: Command.CallBack<object, A, O>[] = [];
     checkers: Command.CallBack<object, A, O>[] = [];
     public name?: string;
+    scopes: Command.Scope[] = [];
+    permissions: User.Permission[] = [];
     private aliasNames: string[] = [];
     public parent: Command = null;
     public children: Command[] = [];
@@ -95,7 +98,37 @@ export class Command<A extends any[] = [], O = {}> {
     setFilters(filters: Command.Filters) {
         this.filters = filters;
     }
-
+    permission(...permissions: User.Permission[]) {
+        this.permissions = [
+            ...new Set([...this.permissions,...permissions])
+        ]
+        return this
+    }
+    /**
+     * 指定指令可使用范围
+     * @param scopes {Command.Scope[]}
+     */
+    scope(...scopes:Command.Scope[]){
+        this.scopes=[
+            ...new Set([...this.scopes,...scopes])
+        ]
+        return this
+    }
+    private isMatchedRuntime<S extends MessageEvent>(runtime:Command.RunTime<S,A,O>){
+        const checkScope=()=>{
+            if(!this.scopes?.length) return true
+            return this.scopes.some(scope=>{
+                return runtime.message.message_type===scope
+            })
+        }
+        const checkPermission=()=>{
+            if(!this.permissions?.length) return true
+            return this.permissions.some(permission=>{
+                return runtime.message?.sender?.permissions?.includes(permission)
+            })
+        }
+        return checkScope() && checkPermission()
+    }
     option<S extends string>(
         option: S,
         initialValue?: OptionValueType<S>,
@@ -255,6 +288,7 @@ export class Command<A extends any[] = [], O = {}> {
             };
         }
         if (!runtime) return;
+        if(!this.isMatchedRuntime<S>(runtime)) return
         const filterFn = Command.createFilterFunction(this.filters);
         if (!filterFn(runtime.message)) return;
         for (const checker of runtime.command.checkers) {
@@ -407,7 +441,7 @@ export class Command<A extends any[] = [], O = {}> {
     }
 
     parse<S extends Message>(message: S, template: string): Command.RunTime<S, A, O> | void {
-        let argv = this.parseSugar(message.raw_message);
+        let argv = this.parseSugar(template);
         if (!argv.name) argv = this.parseArgv(template);
         if (argv.name !== this.name) {
             if (this.aliasNames.includes(argv.name)) argv.name = this.name;
@@ -667,6 +701,7 @@ export namespace Command {
     }
 
     export type Type = keyof Domain;
+    export type Scope = 'private'|'group'|'guild'|'direct';
     export type DomainConfig<T extends Type, A extends string[] = string[]> = {
         parse(argv: string[]): A;
         transform: (...source: A) => Domain[T];

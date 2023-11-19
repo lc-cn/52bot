@@ -87,24 +87,18 @@ export function loadPlugin(name: string):Plugin {
         name
     ]
     for (const path of maybePath) {
-        if (fs.existsSync(path)) {
+        try{
             const result=require(path)
             if(result.default) return result.default
             return result
-        }
+        }catch {}
     }
     throw new Error('找不到插件：' + name);
 }
 
 export function loadPlugins(dir: string):Plugin[] {
     dir=path.resolve(__dirname,dir)
-    return fs.readdirSync(dir).map(name => {
-        try {
-            return loadPlugin(name)
-        } catch {
-            return null
-        }
-    })
+    return fs.readdirSync(dir).map(name => loadPlugin(name))
         .filter(Boolean);
 }
 export async function saveToLocal(path:string,data:Buffer){

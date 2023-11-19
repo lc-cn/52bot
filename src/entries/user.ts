@@ -1,6 +1,3 @@
-import {Contactable} from "@/entries/contactable";
-import {Bot} from "@";
-
 export namespace User{
     export interface Info{
         id:string
@@ -8,5 +5,11 @@ export namespace User{
         avatar:string
         bot:boolean
         public_flag:number
+    }
+    export enum Permission{
+        normal=1,
+        admin=2,
+        owner=4,
+        channelAdmin=5,
     }
 }

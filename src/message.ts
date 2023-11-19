@@ -1,48 +1,59 @@
-import { MessageElem, Quotable, Sendable } from "@/elements";
-import { QQBot } from "@/qqBot";
-import { Dict } from "@/types";
-import { remove, trimQuote } from "@/utils";
-import { Middleware } from "@/middleware";
-import { Prompt } from "@/prompt";
-import { randomInt } from "crypto";
-import { Bot } from "./bot";
+import {MessageElem, Quotable, Sendable} from "@/elements";
+import {QQBot} from "@/qqBot";
+import {Dict} from "@/types";
+import {remove, trimQuote} from "@/utils";
+import {Middleware} from "@/middleware";
+import {Prompt} from "@/prompt";
+import {randomInt} from "crypto";
+import {Bot} from "./bot";
+import {User} from "@/entries/user";
 
 export class Message {
-    sub_type: Message.SubType
+    message_type: Message.SubType
+
     get self_id() {
         return this.bot.self_id
     }
-    guild_id?:string
+
+    guild_id?: string
     channel_id?: string
-    group_id?:string
+    group_id?: string
     message_id: string
     sender: Message.Sender
     user_id: string
     private _prompt: Prompt
+
     constructor(public bot: Bot, attrs: Partial<Message>) {
         Object.assign(this, attrs)
         this._prompt = new Prompt(this.bot, this as any, this.bot.config?.delay?.prompt || 5000)
     }
+
     raw_message: string
-    message_reference?:{message_id:string}
+    message_reference?: { message_id: string }
     message: Sendable
+
     get prompt() {
         return this._prompt.prompts
     }
+
     get promptText() {
         return this._prompt.text
     }
+
     get promptNumber() {
         return this._prompt.number
     }
+
     get promptConfirm() {
         return this._prompt.confirm
     }
+
     get [Symbol.unscopables]() {
         return {
             bot: true
         }
     }
+
     /**
      * 注册一个中间件
      * @param middleware
@@ -78,8 +89,9 @@ export interface MessageEvent {
 export class PrivateMessageEvent extends Message implements MessageEvent {
     constructor(bot: Bot, payload: Partial<Message>) {
         super(bot, payload);
-        this.sub_type = 'private'
+        this.message_type = 'private'
     }
+
     async reply(message: Sendable) {
         return this.bot.sendPrivateMessage(this.user_id, message, this)
     }
@@ -88,64 +100,81 @@ export class PrivateMessageEvent extends Message implements MessageEvent {
 export class GroupMessageEvent extends Message implements MessageEvent {
     group_id: string
     group_name: string
+
     constructor(bot: Bot, payload: Partial<Message>) {
         super(bot, payload);
-        this.sub_type = 'group'
+        this.message_type = 'group'
     }
+
     async reply(message: Sendable) {
         return this.bot.sendGroupMessage(this.group_id, message, this)
     }
 }
-export class DirectMessageEvent extends Message implements MessageEvent{
+
+export class DirectMessageEvent extends Message implements MessageEvent {
     user_id: string
-    channel_id:string
-    constructor(bot:Bot,payload:Partial<Message>){
-        super(bot,payload);
-        this.sub_type='direct'
+    channel_id: string
+
+    constructor(bot: Bot, payload: Partial<Message>) {
+        super(bot, payload);
+        this.message_type = 'direct'
     }
+
     reply(message: Sendable) {
         return this.bot.sendDirectMessage(this.guild_id, message, this)
     }
 }
+
 export class GuildMessageEvent extends Message implements MessageEvent {
     guild_id: string
     guild_name: string
     channel_id: string
-    get guild(){
-        try{
+
+    get guild() {
+        try {
             return this.bot.pickGuild(this.guild_id)
-        }catch {
+        } catch {
             return null
         }
     }
-    get channel(){
-        try{
+
+    get channel() {
+        try {
             return this.bot.pickChannel(this.channel_id)
         } catch {
             return null
         }
     }
+
     channel_name: string
+
     constructor(bot: Bot, payload: Partial<Message>) {
         super(bot, payload);
-        this.sub_type = 'guild'
+        this.message_type = 'guild'
     }
-    async asAnnounce(){
+
+    async asAnnounce() {
         return this.channel.setAnnounce(this.message_id)
     }
-    async pin(){
+
+    async pin() {
         return this.channel.pinMessage(this.message_id)
     }
+
     async reply(message: Sendable) {
         return this.bot.sendGuildMessage(this.channel_id, message, this)
     }
 }
+
 export namespace Message {
     export interface Sender {
         user_id: string
         user_name: string
+        permissions: User.Permission[]
     }
-    export type SubType = 'private' | 'group' | 'guild'|'direct'
+
+    export type SubType = 'private' | 'group' | 'guild' | 'direct'
+
     export function parse(this: QQBot, payload: Dict) {
         let template = payload.content || ''
         let result: MessageElem[] = []
@@ -181,7 +210,7 @@ export namespace Message {
                         attrs = [['all', true]]
                     }
                 } else if (/^[a-z]+:[0-9]+$/.test(type)) {
-                    attrs = [['id', type.split(':')[1]]]
+                    attrs = ['id=' + type.split(':')[1]]
                     type = 'face'
                 }
                 result.push({
@@ -192,6 +221,12 @@ export namespace Message {
                     }))
                 })
                 brief += `<${type}:${attrs.join(',')}>`
+            }else{
+                result.push({
+                    type: "text",
+                    text: match
+                });
+                brief += match;
             }
         }
         if (template) {
@@ -204,7 +239,7 @@ export namespace Message {
         // 2. 将附件添加到消息中
         if (payload.attachments) {
             for (const attachment of payload.attachments) {
-                let { content_type, ...data } = attachment
+                let {content_type, ...data} = attachment
                 const [type] = content_type.split('/')
                 result.push({
                     type,
@@ -219,10 +254,92 @@ export namespace Message {
         delete payload.mentions
         return [result, brief]
     }
-    export async function format(this: QQBot, message: Sendable, source: Quotable = {}) {
-        const getType = (type: string) => {
-            return ['image', 'video', 'audio'].indexOf(type) + 1
+    const getType = (type: string) => {
+        return ['image', 'video', 'audio'].indexOf(type) + 1
+    }
+    export async function parseFromTemplate(this: QQBot, template: string, messages: Dict, files: Dict) {
+        let hasMessage=false,hasFiles=false
+        const reg = /(<[^>]+>)/
+        while (template.length) {
+            const [match] = template.match(reg) || [];
+            if (!match) break;
+            const index = template.indexOf(match);
+            const prevText = template.slice(0, index);
+            messages.content += prevText;
+            template = template.slice(index + match.length);
+            const [type, attrArr] = match.slice(1, -1).split(':')
+            const attrs = Object.fromEntries(attrArr.split(',').map((attr: string) => {
+                const [key, value] = attr.split('=')
+                return [key, value]
+            }))
+            switch (type) {
+                case 'text':
+                    if(messages.content){
+                        messages.content += attrs.text
+                    }else{
+                        messages.content = attrs.text
+                    }
+                    hasMessage=true
+                    break;
+                case 'face':
+                    if (messages.content) {
+                        messages.content += `<emoji:${attrs.id}>`
+                    }else{
+                        messages.content += `<emoji:${attrs.id}>`
+                    }
+                    hasMessage=true
+                    break;
+                case 'reply':
+                    messages.msg_id = attrs.message_id
+                    files.msg_id = attrs.message_id
+                    break;
+                case "at":
+                    if (messages.content) {
+                        messages.content += `<@${attrs.id || 'everyone'}>`
+                    } else {
+                        messages.content = `<@${attrs.id || 'everyone'}>`
+                    }
+                    hasMessage=true
+                    break;
+                case 'link':
+                    if (messages.content) {
+                        messages.content += `<#${attrs.channel_id}>`
+                    } else {
+                        messages.content = `<#${attrs.channel_id}>`
+                    }
+                    hasMessage=true
+                    break;
+                case 'video':
+                case 'audio':
+                case 'image':
+                    files.type = getType(type)
+                    files.content = 'file'
+                    files.url = attrs.file
+                    hasFiles=true
+                    break;
+                case 'markdown':
+                    messages.markdown = {
+                        content: attrs.content
+                    }
+                    messages.msg_type = 2
+                    hasMessage=true
+                    break;
+                default:
+                    if(messages.content){
+                        messages.content += match
+                    }else{
+                        messages.content = match
+                    }
+                    break;
+            }
         }
+        if(template.length){
+            messages.content += template
+        }
+        return [hasMessage,hasFiles]
+    }
+
+    export async function format(this: QQBot, message: Sendable, source: Quotable = {}) {
         let brief: string = ''
         const messages: Dict = {
             msg_type: 0,
@@ -240,7 +357,11 @@ export namespace Message {
         if (!Array.isArray(message)) message = [message as any]
         for (let elem of message) {
             if (typeof elem === 'string') {
-                elem = { type: 'text', text: elem }
+                const [m,f]=await parseFromTemplate.call(this, elem, messages, files)
+                hasMessages=hasMessages||m
+                hasFiles=hasFiles||f
+                brief += elem
+                continue
             }
             switch (elem.type) {
                 case 'reply':
@@ -287,7 +408,7 @@ export namespace Message {
                 case 'video':
                     files.file_type = getType(elem.type)
                     files.content = 'file'
-                    files.url =elem.file
+                    files.url = elem.file
                     files.event_id = source!.event_id
                     files.msg_id = source?.message_id
                     files.srv_send_msg = true

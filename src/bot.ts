@@ -1,7 +1,7 @@
 import * as path from "path";
 import { Plugin } from "./plugin";
 import { QQBot } from "./qqBot";
-import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
+import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
 import { Middleware } from "@/middleware";
 import {loadPlugin, loadPlugins, saveToLocal} from "@/utils";
 import { Channel } from './entries/channel'
@@ -61,16 +61,18 @@ export class Bot extends QQBot {
     findCommand(name: string) {
         return this.commandList.find(command => command.name === name)
     }
-    getSupportMiddlewares(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent) {
-        return this.pluginList.filter(plugin => plugin.scope.includes(event.sub_type))
+    getSupportMiddlewares(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent) {
+        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type))
             .reduce((result, plugin) => {
                 result.push(...plugin.middlewares)
                 return result
             }, [] as Middleware[])
     }
-    getSupportCommands(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent) {
-        return this.pluginList.filter(plugin => plugin.scope.includes(event.sub_type))
-            .flatMap(plugin => plugin.commandList)
+    getSupportCommands(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent) {
+        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type))
+            .flatMap(plugin => plugin.commandList).filter(command=>{
+                return !command.scopes?.length || command.scopes.includes(event.message_type)
+            })
     }
 
     handleMessage(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent) {
