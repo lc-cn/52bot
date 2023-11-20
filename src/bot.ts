@@ -18,6 +18,8 @@ import {Friend} from "@/entries/friend";
 import {GroupMember} from "@/entries/groupMember";
 import {BotKey} from "@/constans";
 import {Dict} from "@/types";
+import * as path from "path";
+import * as fs from "fs";
 
 type GuildMemberMap = Map<string, GuildMember.Info>
 type GroupMemberMap = Map<string,GroupMember.Info>
@@ -250,14 +252,26 @@ export class Bot extends QQBot {
         await reloadFriendList.call(this)
         this.logger.mark(`加载了${this.friends.size}个好友，${this.groups.size}个群，${this.guilds.size}个频道`)
     }
-    loadFromDir(...dirs: string[]) {
-        for(const dir of dirs){
-            const plugins=loadPlugins(dir)
-            for(const plugin of plugins){
-                this.mount(plugin)
-            }
+    loadFromBuilt(plugins:Plugin.BuiltPlugins[]) {
+        return this.loadPlugins(plugins.map(p=>{
+            return path.resolve(__dirname, 'plugins', p)
+        }))
+    }
+    private loadPlugins(dirs:string[]){
+        for(const plugin of dirs){
+            this.mount(plugin)
         }
         return this
+    }
+    loadFromDir(...dirs: string[]) {
+        return this.loadPlugins(dirs.map(dir=>{
+            return path.resolve(process.cwd(), dir)
+        }).reduce((result,dir)=>{
+            if(!fs.existsSync(dir)) return result
+            const files=fs.readdirSync(dir)
+            result.push(...files.map(file=>path.join(dir,file)))
+           return result
+        },[]))
     }
 
     stop() {

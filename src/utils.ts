@@ -101,7 +101,6 @@ export function loadPlugin(name: string):Plugin {
 }
 
 export function loadPlugins(dir: string):Plugin[] {
-    dir=path.resolve(__dirname,dir)
     return fs.readdirSync(dir).map(name => {
         try{
             return loadPlugin(name)

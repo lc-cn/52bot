@@ -187,6 +187,7 @@ export namespace Plugin {
         install: InstallFn
     }
     export type InstallFn=(plugin:Plugin)=>void
+    export type BuiltPlugins='commandParser'|'guildManager'|'hmr'|'pluginManager'
 }
 export class PluginMap extends Map<string,Plugin>{
     private get anonymousCount(){
