@@ -111,6 +111,17 @@ export function loadPlugins(dir: string):Plugin[] {
     })
         .filter(Boolean);
 }
+export function getCallerStack(){
+    const origPrepareStackTrace = Error.prepareStackTrace
+    Error.prepareStackTrace = function (_, stack) {
+        return stack
+    }
+    const err = new Error()
+    const stack: NodeJS.CallSite[] = err.stack as unknown as NodeJS.CallSite[]
+    Error.prepareStackTrace = origPrepareStackTrace
+    stack.shift() // 排除当前文件的调用
+    return stack
+}
 export async function saveToLocal(path:string,data:Buffer){
     await fs.promises.writeFile(path,data)
 }

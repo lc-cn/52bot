@@ -1,4 +1,6 @@
 import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent} from "@/message";
+import {Plugin} from '@/plugin'
+import {Bot} from "@/bot";
 export enum QQEvent {
     DIRECT_MESSAGE_CREATE='message.direct',
     AT_MESSAGE_CREATE='message.guild',
@@ -20,6 +22,14 @@ export enum QQEvent {
     GROUP_AT_MESSAGE_CREATE='message.group',
 }
 export interface EventMap{
+    'plugin-beforeMount'(plugin:Plugin):void
+    'plugin-mounted'(plugin:Plugin):void
+    'plugin-beforeUnmount'(plugin:Plugin):void
+    'plugin-unmounted'(plugin:Plugin):void
+    'service-beforeRegister':<T extends keyof Bot.Services>(name:T,service:Bot.Services[T])=>void
+    'service-registered':<T extends keyof Bot.Services>(name:T,service:Bot.Services[T])=>void
+    'service-beforeDestroy':<T extends keyof Bot.Services>(name:T,service:Bot.Services[T])=>void
+    'service-destroyed':<T extends keyof Bot.Services>(name:T,service:Bot.Services[T])=>void
     'message'(e:PrivateMessageEvent|GroupMessageEvent|GuildMessageEvent|DirectMessageEvent):void
     'message.direct'(e:DirectMessageEvent):void
     'message.group'(e:GroupMessageEvent):void

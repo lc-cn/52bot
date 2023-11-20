@@ -1,12 +1,13 @@
 import { ArgsType, Command, defineCommand } from "@/command";
 import { EventEmitter } from "events";
 import { Middleware } from "@/middleware";
-import { remove } from "@/utils";
+import {getCallerStack, remove} from "@/utils";
 import {Bot} from "@/bot";
 import {BotKey} from "@/constans";
-export interface Plugin extends Bot.Services{}
+import {EventMap} from "@/event";
 export class Plugin extends EventEmitter {
     disposes: Function[] = []
+    readonly filePath:string
     public scope: Plugin.Scope[]
     status: Plugin.Status = 'enabled'
     services:Map<string|symbol,any>=new Map<string|symbol,any>()
@@ -26,6 +27,9 @@ export class Plugin extends EventEmitter {
     constructor(public name: string, config: Plugin.Config={}){
         super()
         this.scope = [].concat(config.scope||['guild', 'group', 'private','direct'])
+        const stack=getCallerStack()
+        stack.shift() // 排除当前文件调用
+        this.filePath=stack[0]?.getFileName();
         return new Proxy(this,{
             get(target,key){
                 if(Reflect.ownKeys(target).includes(key) || target[key]) return Reflect.get(target,key)
@@ -52,6 +56,26 @@ export class Plugin extends EventEmitter {
         const method: 'push' | 'unshift' = before ? 'unshift' : 'push'
         this.middlewares[method](middleware)
         this.disposes.push(() => remove(this.middlewares, middleware))
+        return this
+    }
+    using(...args:[...(keyof Bot.Services)[],(plugin:this)=>void]) {
+        const callback=args.pop()
+        const services=[...args] as (keyof Bot.Services)[]
+        if(typeof callback!=='function') throw new Error('callback 必须是函数')
+        if(!services.length){
+            callback(this)
+            return this
+        }
+        const installFn=()=>{
+            const servicesHasReady=services.every(name=>{
+                return !!this[name]
+            })
+            if(servicesHasReady){
+                callback(this)
+                this.bot.off('service-registered',installFn)
+            }
+        }
+        this.bot.on('service-registered',installFn)
         return this
     }
     command<S extends Command.Declare>(
@@ -102,6 +126,40 @@ export class Plugin extends EventEmitter {
     findCommand(name: string) {
         return this.commandList.find(command => command.name === name);
     }
+}
+export interface Plugin extends Bot.Services{
+    on<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
+
+    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
+
+    once<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
+
+    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
+
+    off<T extends keyof EventMap>(event: T, callback?: EventMap[T]): this
+
+    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback?: (...args: any[]) => void): this
+
+    emit<T extends keyof EventMap>(event: T, ...args: Parameters<EventMap[T]>): boolean
+
+    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, ...args: any[]): boolean
+
+    addListener<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
+
+    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
+
+    addListenerOnce<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
+
+    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback: (...args: any[]) => void): this
+
+    removeListener<T extends keyof EventMap>(event: T, callback?: EventMap[T]): this
+
+    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>, callback?: (...args: any[]) => void): this
+
+    removeAllListeners<T extends keyof EventMap>(event: T): this
+
+    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>): this
+
 }
 export namespace Plugin {
     export interface Config {

@@ -160,6 +160,13 @@ export class Bot extends QQBot {
         plugin.status = 'disabled'
         return this
     }
+    emit(event:string,...args:any[]){
+        const result=super.emit(event,...args)
+        for(const plugin of this.pluginList){
+            plugin.emit(event,...args)
+        }
+        return result
+    }
     use(init:Plugin.InstallObject,config?:Plugin.Config):this
     use(init:Plugin.InstallFn,config?:Plugin.Config):this
     use(init:Plugin.InstallObject|Plugin.InstallFn,config?:Plugin.Config):this{
@@ -185,16 +192,20 @@ export class Bot extends QQBot {
             this.logger.warn(`${plugin} 不是一个有效的插件，将忽略其挂载。`)
             return this
         }
+        this.emit('plugin-beforeMount',plugin)
         this.plugins.set(plugin.name, plugin)
         plugin[BotKey]=this
         for(const [name,service] of plugin.services){
             if(!this.services[name]) {
+                this.emit('service-beforeRegister',name,service)
                 this.services[name]=service
+                this.emit('service-registered',name,service)
                 continue;
             }
             this.logger.warn(`${plugin.name} 有重复的服务，将忽略其挂载。`)
         }
         this.logger.info(`插件：${plugin.name} 已加载。`)
+        this.emit('plugin-mounted',plugin)
         return this
     }
     unmount(name: string):this
@@ -211,14 +222,18 @@ export class Bot extends QQBot {
             this.logger.warn(`${plugin} 尚未加载，将忽略其卸载。`)
             return this
         }
+        this.emit('plugin-beforeUnmount',plugin)
         this.plugins.delete(plugin.name)
         plugin[BotKey]=null
         for(const [name,service] of plugin.services){
             if(this.services[name] && this.services[name]===service) {
+                this.emit('service-beforeDestroy',name,service)
                 delete this.services[name]
+                this.emit('service-destroyed',name,service)
             }
         }
         this.logger.info(`插件：${plugin.name} 已卸载。`)
+        this.emit('plugin-unmounted',plugin)
         return this
     }
     async start() {

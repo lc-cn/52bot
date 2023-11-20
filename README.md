@@ -159,13 +159,13 @@ declare module 'ts-qqbot'{
 ```
 ## 使用插件
 ```javascript
-const {Bot}=require('ts-qqbot')
-const bot=new Bot({
-    // ...
+const {Bot} = require('ts-qqbot')
+const bot = new Bot({
+	// ...
 })
 bot.mount('[模块名]') // 按模块名称加载插件，将一次查找(./plugins>内置插件>官方插件库>社区插件库>node_modules)目录下对应名称的插件
 bot.mount(plugin) // 直接加载对应插件实例
-bot.loadFromDir('./plugins','./services') // 加载指定目录下的所有插件，可传入多个目录，将多次加载
+bot.loadFromDir('./plugins', './services') // 加载指定目录下的所有插件，可传入多个目录，将多次加载
 bot.start()
 ```
 ## 卸载插件
