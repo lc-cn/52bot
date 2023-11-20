@@ -1,4 +1,5 @@
 
+export const BotKey=Symbol('BotKey')
 // 心跳参数
 export enum OpCode {
     DISPATCH = 0, // 服务端进行消息推送

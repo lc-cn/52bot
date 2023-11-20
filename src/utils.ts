@@ -83,13 +83,17 @@ export function loadPlugin(name: string):Plugin {
         path.resolve(__dirname, 'plugins', name),
         path.resolve(process.cwd(), 'plugins', name),
         `@qqbot/plugin-${name}`,
-        `qq-bot-plugin-${name}`,
+        `qqbot-plugin-${name}`,
         name
     ]
     for (const path of maybePath) {
         try{
             const result=require(path)
-            if(result.default) return result.default
+            if(result.default) {
+                const {default:plugin,...other}=result
+                Object.assign(plugin,other)
+                return plugin
+            }
             return result
         }catch {}
     }
@@ -98,7 +102,13 @@ export function loadPlugin(name: string):Plugin {
 
 export function loadPlugins(dir: string):Plugin[] {
     dir=path.resolve(__dirname,dir)
-    return fs.readdirSync(dir).map(name => loadPlugin(name))
+    return fs.readdirSync(dir).map(name => {
+        try{
+            return loadPlugin(name)
+        }catch {
+            return null
+        }
+    })
         .filter(Boolean);
 }
 export async function saveToLocal(path:string,data:Buffer){

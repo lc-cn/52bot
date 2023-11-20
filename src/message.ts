@@ -361,6 +361,7 @@ export namespace Message {
                 hasMessages=hasMessages||m
                 hasFiles=hasFiles||f
                 brief += elem
+                hasMessages=true
                 continue
             }
             switch (elem.type) {

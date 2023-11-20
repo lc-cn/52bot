@@ -1,5 +1,4 @@
 import {Plugin} from "@/plugin";
-import {User} from "@/entries/user";
 
 const pluginManager = new Plugin('插件管理');
 pluginManager
@@ -9,7 +8,7 @@ pluginManager
         return {
             type:"text",
             text:[...runtime.bot.pluginList].map((plugin, index) => {
-                return `${index + 1} ${plugin.name}(${plugin.status})`
+                return `${index + 1} ${plugin.name}(${plugin.statusText})`
             }).join('\n')
         }
     })

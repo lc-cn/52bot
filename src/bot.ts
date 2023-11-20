@@ -1,9 +1,8 @@
-import * as path from "path";
-import { Plugin } from "./plugin";
+import {Plugin, PluginMap} from "./plugin";
 import { QQBot } from "./qqBot";
-import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
+import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent} from "@/message";
 import { Middleware } from "@/middleware";
-import {loadPlugin, loadPlugins, saveToLocal} from "@/utils";
+import {loadPlugin, loadPlugins} from "@/utils";
 import { Channel } from './entries/channel'
 import { Guild } from "./entries/guild";
 import { GuildMember } from "./entries/guildMember";
@@ -14,19 +13,17 @@ import {
     reloadGroupMemberList,
     reloadGuildMembers, reloadFriendList
 } from "./internal/onlinelistener";
-import {AudioElem, ImageElem, Quotable, Sendable, VideoElem} from "./elements";
 import {Group} from "@/entries/group";
 import {Friend} from "@/entries/friend";
 import {GroupMember} from "@/entries/groupMember";
-import * as fs from "fs";
-import * as crypto from "crypto";
+import {BotKey} from "@/constans";
+import {Dict} from "@/types";
 
 type GuildMemberMap = Map<string, GuildMember.Info>
 type GroupMemberMap = Map<string,GroupMember.Info>
 export class Bot extends QQBot {
     middlewares: Middleware[] = []
-    private data_dir:string
-    plugins: Map<string, Plugin> = new Map<string, Plugin>()
+    plugins: PluginMap = new PluginMap()
     guilds: Map<string, Guild.Info> = new Map<string, Guild.Info>()
     guildMembers: Map<string, GuildMemberMap> = new Map<string, GuildMemberMap>()
     channels: Map<string, Channel.Info> = new Map<string, Channel.Info>()
@@ -35,9 +32,6 @@ export class Bot extends QQBot {
     friends:Map<string,Friend.Info> = new Map<string,Friend.Info>()
     constructor(config: Bot.Config) {
         super(config)
-        const dataDir = config.data_dir||path.resolve(process.cwd(), 'data')
-        if(!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
-        this.data_dir = dataDir
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
     }
@@ -52,6 +46,16 @@ export class Bot extends QQBot {
     }
     get commandList() {
         return this.pluginList.flatMap(plugin => plugin.commandList)
+    }
+    get services(){
+        let result:Dict<any,string|symbol>={}
+        this.pluginList.forEach(plugin=>{
+            plugin.services.forEach((service,name)=>{
+                if(Reflect.ownKeys(result).includes(name)) return
+                result[name] = service
+            })
+        })
+        return result
     }
     middleware(middleware: Middleware, before?: boolean) {
         if (before) this.middlewares.unshift(middleware)
@@ -134,22 +138,87 @@ export class Bot extends QQBot {
     async getChannelInfo(channel_id: string) {
         return this.channels.get(channel_id)
     }
-
-    use(name: string)
-    use(plugin: Plugin)
-    use(plugin: Plugin | string) {
+    enable(name: string):this
+    enable(plugin: Plugin):this
+    enable(plugin: Plugin | string) {
+        if (typeof plugin === 'string') {
+            plugin = this.plugins.get(plugin)
+            if(!plugin) throw new Error('尚未加载插件：' + plugin)
+        }
+        if(!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
+        plugin.status = 'enabled'
+        return this
+    }
+    disable(name: string):this
+    disable(plugin: Plugin):this
+    disable(plugin: Plugin | string) {
+        if (typeof plugin === 'string') {
+            plugin = this.plugins.get(plugin)
+            if(!plugin) throw new Error('尚未加载插件：' + plugin)
+        }
+        if(!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
+        plugin.status = 'disabled'
+        return this
+    }
+    use(init:Plugin.InstallObject,config?:Plugin.Config):this
+    use(init:Plugin.InstallFn,config?:Plugin.Config):this
+    use(init:Plugin.InstallObject|Plugin.InstallFn,config?:Plugin.Config):this{
+        let name=typeof init==='function'?this.plugins.generateId:init.name||this.plugins.generateId
+        const plugin=new Plugin(name,config)
+        const initFn=typeof init==='function'?init:init.install
+        this.mount(plugin)
+        try{
+            initFn(plugin)
+            return this
+        }catch {
+            this.logger.error(`插件：${name} 初始化失败`)
+            return this.unmount(plugin)
+        }
+    }
+    mount(name: string)
+    mount(plugin: Plugin)
+    mount(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
             plugin = loadPlugin(plugin)
         }
+        if(!(plugin instanceof Plugin)){
+            this.logger.warn(`${plugin} 不是一个有效的插件，将忽略其挂载。`)
+            return this
+        }
         this.plugins.set(plugin.name, plugin)
+        plugin[BotKey]=this
+        for(const [name,service] of plugin.services){
+            if(!this.services[name]) {
+                this.services[name]=service
+                continue;
+            }
+            this.logger.warn(`${plugin.name} 有重复的服务，将忽略其挂载。`)
+        }
+        this.logger.info(`插件：${plugin.name} 已加载。`)
         return this
     }
-    unUse(plugin: Plugin | string) {
+    unmount(name: string):this
+    unmount(plugin: Plugin):this
+    unmount(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
-            this.plugins.delete(plugin)
-        } else {
-            this.plugins.delete(plugin.name)
+            plugin=this.plugins.get(plugin)
         }
+        if(!(plugin instanceof Plugin)){
+            this.logger.warn(`${plugin} 不是一个有效的插件，将忽略其卸载。`)
+            return this
+        }
+        if(!this.plugins.has(plugin.name)){
+            this.logger.warn(`${plugin} 尚未加载，将忽略其卸载。`)
+            return this
+        }
+        this.plugins.delete(plugin.name)
+        plugin[BotKey]=null
+        for(const [name,service] of plugin.services){
+            if(this.services[name] && this.services[name]===service) {
+                delete this.services[name]
+            }
+        }
+        this.logger.info(`插件：${plugin.name} 已卸载。`)
         return this
     }
     async start() {
@@ -166,10 +235,12 @@ export class Bot extends QQBot {
         await reloadFriendList.call(this)
         this.logger.mark(`加载了${this.friends.size}个好友，${this.groups.size}个群，${this.guilds.size}个频道`)
     }
-    loadFromDir(dir: string) {
-        const plugins=loadPlugins(dir)
-        for(const plugin of plugins){
-            this.use(plugin)
+    loadFromDir(...dirs: string[]) {
+        for(const dir of dirs){
+            const plugins=loadPlugins(dir)
+            for(const plugin of plugins){
+                this.mount(plugin)
+            }
         }
         return this
     }
@@ -180,6 +251,6 @@ export class Bot extends QQBot {
 }
 export namespace Bot{
     export interface Config extends QQBot.Config{
-        data_dir?: string
     }
+    export interface Services{}
 }
