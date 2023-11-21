@@ -12,6 +12,7 @@ commandParser.middleware(async (event, next) => {
 commandParser.command('/帮助 [name:string]')
     .scope('private', 'group', 'guild', "direct")
     .desc("显示指令帮助")
+    .alias('help')
     .sugar(/^(\S+)帮助$/, {args: ['$1']})
     .option("-H [showHidden:boolean] 显示隐藏指令")
     .action(({options, bot, message}, target) => {

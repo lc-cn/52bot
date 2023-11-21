@@ -1,4 +1,6 @@
 import {Plugin} from "@/plugin";
+import {User} from "@/entries/user";
+import Permission = User.Permission;
 
 const pluginManager = new Plugin('插件管理');
 pluginManager
@@ -14,7 +16,7 @@ pluginManager
     })
 pluginManager
     .command('/启用插件 [name:string]')
-    // .permission(User.Permission.owner)
+    .permission(Permission.owner)
     .scope("direct")
 .action((runtime,name)=>{
     const plugin=runtime.bot.plugins.get(name)
@@ -25,7 +27,7 @@ pluginManager
     return '插件已启用'
 })
 pluginManager.command('/禁用插件 [name:string]')
-    // .permission(User.Permission.owner,User.Permission.admin)
+    .permission(Permission.owner,Permission.admin)
     .scope("direct")
 .action((runtime,name)=>{
     const plugin=runtime.bot.plugins.get(name)

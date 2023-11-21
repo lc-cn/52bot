@@ -121,6 +121,31 @@ export function getCallerStack(){
     stack.shift() // 排除当前文件的调用
     return stack
 }
+
+/**
+ * 格式化秒数为时间类型
+ * @param seconds 秒数
+ */
+export function formatTime(seconds:number){
+    let result = ''
+    const units = [
+        {name: '年', value: 60 * 60 * 24 * 365},
+        {name: '月', value: 60 * 60 * 24 * 30},
+        {name: '周', value: 60 * 60 * 24 * 7},
+        {name: '天', value: 60 * 60 * 24},
+        {name: '小时', value: 60 * 60},
+        {name: '分钟', value: 60},
+        {name: '秒', value: 1}
+    ]
+    for (const unit of units) {
+        const value = Math.floor(seconds / unit.value)
+        if (value > 0) {
+            result += `${value} ${unit.name} `
+        }
+        seconds %= unit.value
+    }
+    return result.trimEnd()
+}
 export async function saveToLocal(path:string,data:Buffer){
     await fs.promises.writeFile(path,data)
 }

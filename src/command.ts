@@ -181,8 +181,8 @@ export class Command<A extends any[] = [], O = {}> {
         return this;
     }
 
-    alias(alias: string) {
-        this.aliasNames.push(alias);
+    alias(...alias: string[]) {
+        this.aliasNames.push(...alias);
         return this;
     }
 
