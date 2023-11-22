@@ -1,10 +1,9 @@
-import {MessageElem, Quotable, Sendable} from "@/elements";
+import {MessageElem, Sendable} from "@/elements";
 import {QQBot} from "@/qqBot";
 import {Dict} from "@/types";
 import {remove, trimQuote} from "@/utils";
 import {Middleware} from "@/middleware";
 import {Prompt} from "@/prompt";
-import {randomInt} from "crypto";
 import {Bot} from "./bot";
 import {User} from "@/entries/user";
 
@@ -103,6 +102,7 @@ export class GroupMessageEvent extends Message implements MessageEvent {
 
     constructor(bot: Bot, payload: Partial<Message>) {
         super(bot, payload);
+        this.group_id=payload.group_id
         this.message_type = 'group'
     }
 
@@ -220,7 +220,7 @@ export namespace Message {
                         return [key.toLowerCase(), trimQuote(values.join('='))]
                     }))
                 })
-                brief += `<${type}:${attrs.join(',')}>`
+                brief += `<${type},${attrs.join(',')}>`
             }else{
                 result.push({
                     type: "text",
@@ -244,214 +244,15 @@ export namespace Message {
                 result.push({
                     type,
                     ...data,
-                    src: data.src || data.url,
-                    url: data.url || data.src
+                    src:`https://${data.src}`,
+                    url: `https://${data.url}`
                 })
-                brief += `<$${type},${Object.entries(data).map(([key, value]) => `${key}=${value}`).join(',')}>`
+                brief += `<${type},${Object.entries(data).map(([key, value]) => `${key}=${value}`).join(',')}>`
             }
         }
         delete payload.attachments
         delete payload.mentions
         return [result, brief]
-    }
-    const getType = (type: string) => {
-        return ['image', 'video', 'audio'].indexOf(type) + 1
-    }
-    export async function parseFromTemplate(this: QQBot, template: string, messages: Dict, files: Dict) {
-        let hasMessage=false,hasFiles=false
-        const reg = /(<[^>]+>)/
-        while (template.length) {
-            const [match] = template.match(reg) || [];
-            if (!match) break;
-            const index = template.indexOf(match);
-            const prevText = template.slice(0, index);
-            messages.content += prevText;
-            template = template.slice(index + match.length);
-            const [type, attrArr] = match.slice(1, -1).split(':')
-            const attrs = Object.fromEntries(attrArr.split(',').map((attr: string) => {
-                const [key, value] = attr.split('=')
-                return [key, value]
-            }))
-            switch (type) {
-                case 'text':
-                    if(messages.content){
-                        messages.content += attrs.text
-                    }else{
-                        messages.content = attrs.text
-                    }
-                    hasMessage=true
-                    break;
-                case 'face':
-                    if (messages.content) {
-                        messages.content += `<emoji:${attrs.id}>`
-                    }else{
-                        messages.content += `<emoji:${attrs.id}>`
-                    }
-                    hasMessage=true
-                    break;
-                case 'reply':
-                    messages.msg_id = attrs.message_id
-                    files.msg_id = attrs.message_id
-                    break;
-                case "at":
-                    if (messages.content) {
-                        messages.content += `<@${attrs.id || 'everyone'}>`
-                    } else {
-                        messages.content = `<@${attrs.id || 'everyone'}>`
-                    }
-                    hasMessage=true
-                    break;
-                case 'link':
-                    if (messages.content) {
-                        messages.content += `<#${attrs.channel_id}>`
-                    } else {
-                        messages.content = `<#${attrs.channel_id}>`
-                    }
-                    hasMessage=true
-                    break;
-                case 'video':
-                case 'audio':
-                case 'image':
-                    files.type = getType(type)
-                    files.content = 'file'
-                    files.url = attrs.file
-                    hasFiles=true
-                    break;
-                case 'markdown':
-                    messages.markdown = {
-                        content: attrs.content
-                    }
-                    messages.msg_type = 2
-                    hasMessage=true
-                    break;
-                default:
-                    if(messages.content){
-                        messages.content += match
-                    }else{
-                        messages.content = match
-                    }
-                    break;
-            }
-        }
-        if(template.length){
-            messages.content += template
-        }
-        return [hasMessage,hasFiles]
-    }
-
-    export async function format(this: QQBot, message: Sendable, source: Quotable = {}) {
-        let brief: string = ''
-        const messages: Dict = {
-            msg_type: 0,
-            content: '',
-            msg_id: source?.message_id,
-            msg_seq: randomInt(1, 1000000),
-            timestamp: Number((Date.now() / 1000).toFixed(0))
-        }
-        const files: Dict = {
-            msg_id: source?.message_id,
-            msg_seq: randomInt(1, 1000000),
-            timestamp: Number((Date.now() / 1000).toFixed(0))
-        }
-        let hasMessages = false, hasFiles = false, buttons = [];
-        if (!Array.isArray(message)) message = [message as any]
-        for (let elem of message) {
-            if (typeof elem === 'string') {
-                const [m,f]=await parseFromTemplate.call(this, elem, messages, files)
-                hasMessages=hasMessages||m
-                hasFiles=hasFiles||f
-                brief += elem
-                hasMessages=true
-                continue
-            }
-            switch (elem.type) {
-                case 'reply':
-                    messages.msg_id = elem.message_id
-                    files.msg_id = elem.message_id
-                    brief += `<$reply,message_id=${elem.message_id}>`
-                    break;
-                case "at":
-                    if (messages.content) {
-                        messages.content += `<@${elem.id || 'everyone'}>`
-                    } else {
-                        messages.content = `<@${elem.id || 'everyone'}>`
-                    }
-                    brief += `<$at,user=${elem.id || 'everyone'}>`
-                    break;
-                case 'link':
-                    if (messages.content) {
-                        messages.content += `<#${elem.channel_id}>`
-                    } else {
-                        messages.content = `<#${elem.channel_id}>`
-                    }
-                    brief += `<$link,channel=${elem.channel_id}>`
-                    break;
-                case 'text':
-                    if (messages.content) {
-                        messages.content += elem.text
-                    } else {
-                        messages.content = elem.text
-                    }
-                    hasMessages = true
-                    brief += elem.text
-                    break;
-                case 'face':
-                    if (messages.content) {
-                        messages.content += `<emoji:${elem.id}>`
-                    } else {
-                        messages.content = `<emoji:${elem.id}>`
-                    }
-                    brief += `<$face,id=${elem.id}>`
-                    hasMessages = true
-                    break;
-                case 'image':
-                case 'audio':
-                case 'video':
-                    files.file_type = getType(elem.type)
-                    files.content = 'file'
-                    files.url = elem.file
-                    files.event_id = source!.event_id
-                    files.msg_id = source?.message_id
-                    files.srv_send_msg = true
-                    hasFiles = true
-                    brief += `<${elem.type},file=${elem.file}>`
-                    break;
-                case 'markdown':
-                    messages.markdown = {
-                        content: elem.content
-                    }
-                    messages.msg_type = 2
-                    hasMessages = true
-                    brief += `<#markdown,content=${elem.content}>`
-                    break;
-                case 'button':
-                    buttons.push(elem.data)
-                    brief += `<$button,data=${JSON.stringify(elem.data)}>`
-                    break;
-            }
-        }
-        if (buttons.length) {
-            const rows = []
-            for (let i = 0; i < buttons.length; i += 4) {
-                rows.push(buttons.slice(i, i + 4))
-            }
-            messages.keyboard = {
-                content: {
-                    rows: rows.map(row => {
-                        return {
-                            buttons: row
-                        }
-                    })
-                }
-            }
-        }
-        return {
-            messages: messages,
-            hasFiles,
-            hasMessages,
-            brief,
-            files
-        }
     }
 }
 

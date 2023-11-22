@@ -4,8 +4,11 @@ import * as path from "path";
 import * as fs from "fs";
 
 const HMR=new Plugin('HMR')
+const localPluginDirs=process.env.pluginDirs?.split(',')||[]
 const watchDirs=[ // 只监听本地插件和内置插件的变更，模块的管不了
-    path.join(process.cwd(),'plugins'), // 本地插件
+        ...localPluginDirs.filter(Boolean).map(dir=>{
+            return path.resolve(process.cwd(),dir)
+        }),// 本地插件
     __dirname, // 内置插件
     path.join(process.cwd(),`.${process.env.mode}.env`), // 环境变量
 ]

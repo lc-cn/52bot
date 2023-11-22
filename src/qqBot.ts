@@ -3,12 +3,12 @@ import {WebSocket} from "ws";
 import * as log4js from 'log4js'
 import {EventEmitter} from "events";
 import {SessionManager} from "./sessionManager";
-import {AudioElem, ImageElem, Quotable, Sendable, VideoElem} from "@/elements";
+import { Quotable, Sendable } from "@/elements";
 import { Dict, LogLevel} from "@/types";
 import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
 import {EventMap, QQEvent} from "@/event";
 import { Bot } from "./bot";
-import {User} from "@/entries/user";
+import {Sender} from "@/entries/sender";
 
 export class QQBot extends EventEmitter {
     request: AxiosInstance
@@ -100,24 +100,6 @@ export class QQBot extends EventEmitter {
         return result
     }
 
-    async sendPrivateMessage(user_id: string, message: Sendable, source?: Quotable) {
-        const { hasMessages, messages, brief, hasFiles, files } = await Message.format.call(this, message, source)
-        let message_id = ''
-        if (hasMessages) {
-            let { data: { id } } = await this.request.post(`/v2/users/${user_id}/messages`, messages)
-            message_id = id
-        }
-        if (hasFiles) {
-            let { data: { id } } = await this.request.post(`/v2/users/${user_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.logger.info(`send to User(${user_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
-    }
     async createDirectSession(guild_id:string,user_id:string){
         const {data:result}=await this.request.post(`/users/@me/dms`,{
             recipient_id:user_id,
@@ -125,61 +107,29 @@ export class QQBot extends EventEmitter {
         })
         return result
     }
+    async sendPrivateMessage(user_id: string, message: Sendable, source?: Quotable) {
+        const sender=new Sender(this,`/v2/users/${user_id}`,message,source)
+        const result= sender.sendMsg()
+        this.logger.info(`send to User(${user_id}): ${sender.brief}`)
+        return result
+    }
     async sendDirectMessage(guild_id:string,message:Sendable,source?:Quotable){
-        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
-        let message_id = ''
-        if (hasMessages) {
-            let { data: { id } } = await this.request.post(`/dms/${guild_id}/messages`, messages)
-            message_id = id
-        }
-        if (hasFiles) {
-            let { data: { id } } = await this.request.post(`/dms/${guild_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.logger.info(`send to Direct(${guild_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
+        const sender=new Sender(this,`/dms/${guild_id}`,message,source)
+        const result= sender.sendMsg()
+        this.logger.info(`send to Direct(${guild_id}): ${sender.brief}`)
+        return result
     }
     async sendGuildMessage(channel_id: string, message: Sendable, source?: Quotable) {
-        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
-        let message_id = ''
-        if (hasMessages) {
-            let { data: { id } } = await this.request.post(`/channels/${channel_id}/messages`, messages)
-            message_id = id
-        }
-        if (hasFiles) {
-            console.log(files)
-            let { data: { id } } = await this.request.post(`/channels/${channel_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.logger.info(`send to Channel(${channel_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
+        const sender=new Sender(this,`/channels/${channel_id}`,message,source)
+        const result= sender.sendMsg()
+        this.logger.info(`send to Channel(${channel_id}): ${sender.brief}`)
+        return result
     }
     async sendGroupMessage(group_id: string, message: Sendable, source?: Quotable) {
-        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this, message, source)
-        let message_id: string = ''
-        if (hasMessages) {
-            const { data: result } = await this.request.post(`/v2/groups/${group_id}/messages`, messages)
-            console.log(result)
-            message_id = result.seq
-        }
-        if (hasFiles) {
-            let { data: { id } } = await this.request.post(`/v2/groups/${group_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.logger.info(`send to Group(${group_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
+        const sender=new Sender(this,`/v2/groups/${group_id}`,message,source)
+        const result= sender.sendMsg()
+        this.logger.info(`send to Group(${group_id}): ${sender.brief}`)
+        return result
     }
 
     dispatchEvent(event: string, wsRes: any) {

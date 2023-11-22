@@ -17,23 +17,7 @@ export class Channel extends Contactable {
         return channel
     }
     async sendMessage(message:Sendable,source?:Quotable){
-        const { hasMessages, messages, brief, hasFiles, files } =await Message.format.call(this.bot, message, source)
-        let message_id = ''
-        if (hasMessages) {
-            let { data: { id } } = await this.bot.request.post(`/channels/${this.channel_id}/messages`, messages)
-            message_id = id
-        }
-        if (hasFiles) {
-            console.log(files)
-            let { data: { id } } = await this.bot.request.post(`/channels/${this.channel_id}/files`, files)
-            if (message_id) message_id = `${message_id}|`
-            message_id = message_id + id
-        }
-        this.bot.logger.info(`send to Guild(${this.guild_id})Channel(${this.channel_id}): ${brief}`)
-        return {
-            message_id,
-            timestamp: new Date().getTime() / 1000
-        }
+        return this.bot.sendGuildMessage(this.channel_id,message,source)
     }
     async update(updateInfo: Partial<Pick<Channel.Info, 'name' | 'position' | 'parent_id' | 'private_type' | 'speak_permission'>>):Promise<Channel.Info>{
         const { data: result } = await this.bot.request.patch(`/channels/${this.channel_id}`, updateInfo)
