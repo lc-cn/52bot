@@ -5,9 +5,11 @@ import {getCallerStack, remove} from "@/utils";
 import {Bot} from "@/bot";
 import {BotKey} from "@/constans";
 import {EventMap} from "@/event";
+import {Dict} from "@/types";
 export class Plugin extends EventEmitter {
     disposes: Function[] = []
     readonly filePath:string
+    private lifecycle:Dict<Function[]>={}
     public scope: Plugin.Scope[]
     status: Plugin.Status = 'enabled'
     services:Map<string|symbol,any>=new Map<string|symbol,any>()
@@ -15,7 +17,6 @@ export class Plugin extends EventEmitter {
     middlewares: Middleware[] = [];
     [BotKey]: Bot=null
     get bot(){
-        if(!this[BotKey]) throw new Error('插件尚未挂载到 Bot，无法访问Bot实例')
         return this[BotKey]
     }
     get statusText(){
@@ -33,7 +34,8 @@ export class Plugin extends EventEmitter {
         return new Proxy(this,{
             get(target,key){
                 if(Reflect.ownKeys(target).includes(key) || target[key]) return Reflect.get(target,key)
-                return Reflect.get(target.bot.services,key)
+                if(!Reflect.get(target,'bot')) return Reflect.get(target,key)
+                return Reflect.get(target?.bot?.services,key)
             }
         })
     }
@@ -126,6 +128,22 @@ export class Plugin extends EventEmitter {
     findCommand(name: string) {
         return this.commandList.find(command => command.name === name);
     }
+    mounted(callback:Function){
+        const lifeCycles=this.lifecycle["mounted"]||=[]
+        lifeCycles.push(callback)
+    }
+    beforeMount(callback:Function){
+        const lifeCycles=this.lifecycle["beforeMount"]||[]
+        lifeCycles.push(callback)
+    }
+    unmounted(callback:Function){
+        const lifeCycles=this.lifecycle["unmounted"]||[]
+        lifeCycles.push(callback)
+    }
+    beforeUnmount(callback:Function){
+        const lifeCycles=this.lifecycle["beforeUnmount"]||[]
+        lifeCycles.push(callback)
+    }
 }
 export interface Plugin extends Bot.Services{
     on<T extends keyof EventMap>(event: T, callback: EventMap[T]): this
@@ -159,7 +177,6 @@ export interface Plugin extends Bot.Services{
     removeAllListeners<T extends keyof EventMap>(event: T): this
 
     removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof EventMap>): this
-
 }
 export namespace Plugin {
     export interface Config {

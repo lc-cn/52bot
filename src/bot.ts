@@ -1,11 +1,11 @@
 import {Plugin, PluginMap} from "./plugin";
-import { QQBot } from "./qqBot";
+import {QQBot} from "./qqBot";
 import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent} from "@/message";
-import { Middleware } from "@/middleware";
-import {loadPlugin, loadPlugins} from "@/utils";
-import { Channel } from './entries/channel'
-import { Guild } from "./entries/guild";
-import { GuildMember } from "./entries/guildMember";
+import {Middleware} from "@/middleware";
+import {loadPlugin} from "@/utils";
+import {Channel} from './entries/channel'
+import {Guild} from "./entries/guild";
+import {GuildMember} from "./entries/guildMember";
 import {
     reloadGuilds,
     reloadChannels,
@@ -22,51 +22,60 @@ import * as path from "path";
 import * as fs from "fs";
 
 type GuildMemberMap = Map<string, GuildMember.Info>
-type GroupMemberMap = Map<string,GroupMember.Info>
+type GroupMemberMap = Map<string, GroupMember.Info>
+
 export class Bot extends QQBot {
     middlewares: Middleware[] = []
     plugins: PluginMap = new PluginMap()
     guilds: Map<string, Guild.Info> = new Map<string, Guild.Info>()
     guildMembers: Map<string, GuildMemberMap> = new Map<string, GuildMemberMap>()
     channels: Map<string, Channel.Info> = new Map<string, Channel.Info>()
-    groups:Map<string,Group.Info> = new Map<string,Group.Info>()
-    groupMembers:Map<string,GroupMemberMap> = new Map<string,GroupMemberMap>()
-    friends:Map<string,Friend.Info> = new Map<string,Friend.Info>()
+    groups: Map<string, Group.Info> = new Map<string, Group.Info>()
+    groupMembers: Map<string, GroupMemberMap> = new Map<string, GroupMemberMap>()
+    friends: Map<string, Friend.Info> = new Map<string, Friend.Info>()
+
     constructor(config: Bot.Config) {
         super(config)
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
     }
+
     pickGuild = Guild.from.bind(this)
     pickGuildMember = GuildMember.from.bind(this)
     pickGroup = Group.from.bind(this)
     pickGroupMember = GroupMember.from.bind(this)
     pickFriend = Friend.from.bind(this)
     pickChannel = Channel.from.bind(this)
+
     get pluginList() {
         return [...this.plugins.values()].filter(p => p.status === 'enabled')
     }
+
     get commandList() {
         return this.pluginList.flatMap(plugin => plugin.commandList)
     }
-    get services(){
-        let result:Dict<any,string|symbol>={}
-        this.pluginList.forEach(plugin=>{
-            plugin.services.forEach((service,name)=>{
-                if(Reflect.ownKeys(result).includes(name)) return
+
+    get services() {
+        let result: Dict<any, string | symbol> = {}
+        this.pluginList.forEach(plugin => {
+            plugin.services.forEach((service, name) => {
+                if (Reflect.ownKeys(result).includes(name)) return
                 result[name] = service
             })
         })
         return result
     }
+
     middleware(middleware: Middleware, before?: boolean) {
         if (before) this.middlewares.unshift(middleware)
         else this.middlewares.push(middleware)
         return this
     }
+
     findCommand(name: string) {
         return this.commandList.find(command => command.name === name)
     }
+
     getSupportMiddlewares(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent) {
         return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type))
             .reduce((result, plugin) => {
@@ -74,9 +83,10 @@ export class Bot extends QQBot {
                 return result
             }, [] as Middleware[])
     }
+
     getSupportCommands(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent) {
         return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type))
-            .flatMap(plugin => plugin.commandList).filter(command=>{
+            .flatMap(plugin => plugin.commandList).filter(command => {
                 return !command.scopes?.length || command.scopes.includes(event.message_type)
             })
     }
@@ -88,16 +98,22 @@ export class Bot extends QQBot {
         ]);
         middleware(event);
     }
+
     async getSelfInfo() {
-        const { data: result } = await this.request.get('/users/@me')
+        const {data: result} = await this.request.get('/users/@me')
         return result
     }
+
     async createChannel(guild_id: string, channelInfo: Omit<Channel.Info, 'id'>): Promise<Channel.Info> {
         return this.pickGuild(guild_id).createChannel(channelInfo)
     }
-    async updateChannel({ channel_id, ...updateInfo }: { channel_id: string } & Partial<Pick<Channel.Info, 'name' | 'position' | 'parent_id' | 'private_type' | 'speak_permission'>>) {
+
+    async updateChannel({channel_id, ...updateInfo}: {
+        channel_id: string
+    } & Partial<Pick<Channel.Info, 'name' | 'position' | 'parent_id' | 'private_type' | 'speak_permission'>>) {
         return this.pickChannel(channel_id).update(updateInfo)
     }
+
     async deleteChannel(channel_id: string) {
         return this.pickChannel(channel_id).delete()
     }
@@ -117,18 +133,23 @@ export class Bot extends QQBot {
     async getGuildMemberList(guild_id: string) {
         return [...this.guildMembers.get(guild_id).values()]
     }
+
     async getGuildMemberInfo(guild_id: string, member_id: string) {
         return this.guildMembers.get(guild_id)?.get(member_id)
     }
+
     async getGroupMemberList(group_id: string) {
         return [...this.groupMembers.get(group_id).values()]
     }
+
     async getGroupMemberInfo(group_id: string, member_id: string) {
         return this.groupMembers.get(group_id)?.get(member_id)
     }
+
     async getFriendList() {
         return [...this.friends.values()]
     }
+
     async getFriendInfo(friend_id: string) {
         return this.friends.get(friend_id)
     }
@@ -140,104 +161,120 @@ export class Bot extends QQBot {
     async getChannelInfo(channel_id: string) {
         return this.channels.get(channel_id)
     }
-    enable(name: string):this
-    enable(plugin: Plugin):this
+
+    enable(name: string): this
+    enable(plugin: Plugin): this
     enable(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
             plugin = this.plugins.get(plugin)
-            if(!plugin) throw new Error('尚未加载插件：' + plugin)
+            if (!plugin) throw new Error('尚未加载插件：' + plugin)
         }
-        if(!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
+        if (!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
         plugin.status = 'enabled'
         return this
     }
-    disable(name: string):this
-    disable(plugin: Plugin):this
+
+    disable(name: string): this
+    disable(plugin: Plugin): this
     disable(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
             plugin = this.plugins.get(plugin)
-            if(!plugin) throw new Error('尚未加载插件：' + plugin)
+            if (!plugin) throw new Error('尚未加载插件：' + plugin)
         }
-        if(!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
+        if (!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
         plugin.status = 'disabled'
         return this
     }
-    emit(event:string,...args:any[]){
-        const result=super.emit(event,...args)
-        for(const plugin of this.pluginList){
-            plugin.emit(event,...args)
+
+    emit(event: string, ...args: any[]) {
+        if(['plugin-beforeMount', 'plugin-mounted','plugin-beforeUnmount', 'plugin-unmounted'].includes(event)){
+            const plugin:Plugin=args[0]
+            const method=event.split('-')[1]
+            if(plugin && plugin['lifecycle'][method]?.length){
+                for(const lifecycle of plugin['lifecycle'][method]){
+                    lifecycle()
+                }
+            }
+        }
+        const result = super.emit(event, ...args)
+        for (const plugin of this.pluginList) {
+            plugin.emit(event, ...args)
         }
         return result
     }
-    use(init:Plugin.InstallObject,config?:Plugin.Config):this
-    use(init:Plugin.InstallFn,config?:Plugin.Config):this
-    use(init:Plugin.InstallObject|Plugin.InstallFn,config?:Plugin.Config):this{
-        let name=typeof init==='function'?this.plugins.generateId:init.name||this.plugins.generateId
-        const plugin=new Plugin(name,config)
-        const initFn=typeof init==='function'?init:init.install
+
+    use(init: Plugin.InstallObject, config?: Plugin.Config): this
+    use(init: Plugin.InstallFn, config?: Plugin.Config): this
+    use(init: Plugin.InstallObject | Plugin.InstallFn, config?: Plugin.Config): this {
+        let name = typeof init === 'function' ? this.plugins.generateId : init.name || this.plugins.generateId
+        const plugin = new Plugin(name, config)
+        const initFn = typeof init === 'function' ? init : init.install
         this.mount(plugin)
-        try{
+        try {
             initFn(plugin)
             return this
-        }catch {
+        } catch {
             this.logger.error(`插件：${name} 初始化失败`)
             return this.unmount(plugin)
         }
     }
+
     mount(name: string)
     mount(plugin: Plugin)
     mount(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
             plugin = loadPlugin(plugin)
         }
-        if(!(plugin instanceof Plugin)){
+        if (!(plugin instanceof Plugin)) {
             this.logger.warn(`${plugin} 不是一个有效的插件，将忽略其挂载。`)
             return this
         }
-        this.emit('plugin-beforeMount',plugin)
+        this.emit('plugin-beforeMount', plugin)
         this.plugins.set(plugin.name, plugin)
-        plugin[BotKey]=this
-        for(const [name,service] of plugin.services){
-            if(!this.services[name]) {
-                this.emit('service-beforeRegister',name,service)
-                this.services[name]=service
-                this.emit('service-registered',name,service)
+        plugin[BotKey] = this
+        for (const [name, service] of plugin.services) {
+            if (!this.services[name]) {
+                this.emit('service-beforeRegister', name, service)
+                this.services[name] = service
+                this.emit('service-registered', name, service)
                 continue;
             }
             this.logger.warn(`${plugin.name} 有重复的服务，将忽略其挂载。`)
         }
+        this.emit('plugin-mounted', plugin)
         this.logger.info(`插件：${plugin.name} 已加载。`)
-        this.emit('plugin-mounted',plugin)
         return this
     }
-    unmount(name: string):this
-    unmount(plugin: Plugin):this
+
+    unmount(name: string): this
+    unmount(plugin: Plugin): this
     unmount(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
-            plugin=this.plugins.get(plugin)
+            plugin = this.plugins.get(plugin)
         }
-        if(!(plugin instanceof Plugin)){
+        if (!(plugin instanceof Plugin)) {
             this.logger.warn(`${plugin} 不是一个有效的插件，将忽略其卸载。`)
             return this
         }
-        if(!this.plugins.has(plugin.name)){
+        if (!this.plugins.has(plugin.name)) {
             this.logger.warn(`${plugin} 尚未加载，将忽略其卸载。`)
             return this
         }
-        this.emit('plugin-beforeUnmount',plugin)
+        this.emit('plugin-beforeUnmount', plugin)
         this.plugins.delete(plugin.name)
-        plugin[BotKey]=null
-        for(const [name,service] of plugin.services){
-            if(this.services[name] && this.services[name]===service) {
-                this.emit('service-beforeDestroy',name,service)
+        plugin[BotKey] = null
+        for (const [name, service] of plugin.services) {
+            if (this.services[name] && this.services[name] === service) {
+                this.emit('service-beforeDestroy', name, service)
                 delete this.services[name]
-                this.emit('service-destroyed',name,service)
+                this.emit('service-destroyed', name, service)
             }
         }
         this.logger.info(`插件：${plugin.name} 已卸载。`)
-        this.emit('plugin-unmounted',plugin)
+        this.emit('plugin-unmounted', plugin)
         return this
     }
+
     async start() {
         await this.sessionManager.start()
         await reloadGuilds.call(this)
@@ -252,34 +289,40 @@ export class Bot extends QQBot {
         await reloadFriendList.call(this)
         this.logger.mark(`加载了${this.friends.size}个好友，${this.groups.size}个群，${this.guilds.size}个频道`)
     }
-    loadFromBuilt(plugins:Plugin.BuiltPlugins[]) {
-        return this.loadPlugins(plugins.map(p=>{
+
+    loadFromBuilt(plugins: Plugin.BuiltPlugins[]) {
+        return this.loadPlugins(plugins.map(p => {
             return path.resolve(__dirname, 'plugins', p)
         }))
     }
-    private loadPlugins(dirs:string[]){
-        for(const plugin of dirs){
+
+    private loadPlugins(dirs: string[]) {
+        for (const plugin of dirs) {
             this.mount(plugin)
         }
         return this
     }
+
     loadFromDir(...dirs: string[]) {
-        return this.loadPlugins(dirs.map(dir=>{
-            return path.resolve(process.cwd(), dir)
-        }).reduce((result,dir)=>{
-            if(!fs.existsSync(dir)) return result
-            const files=fs.readdirSync(dir)
-            result.push(...files.map(file=>path.join(dir,file)))
-           return result
-        },[]))
+        return this.loadPlugins(dirs
+            .map(dir => path.resolve(process.cwd(), dir))
+            .reduce((result:string[], dir) => {
+                if (!fs.existsSync(dir)) return result
+                const files = fs.readdirSync(dir)
+                result.push(...files.map(file => path.join(dir, file)))
+                return result
+            }, []))
     }
 
     stop() {
 
     }
 }
-export namespace Bot{
-    export interface Config extends QQBot.Config{
+
+export namespace Bot {
+    export interface Config extends QQBot.Config {
     }
-    export interface Services{}
+
+    export interface Services {
+    }
 }

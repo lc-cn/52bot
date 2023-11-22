@@ -7,13 +7,17 @@ const HMR=new Plugin('HMR')
 const watchDirs=[ // 只监听本地插件和内置插件的变更，模块的管不了
     path.join(process.cwd(),'plugins'), // 本地插件
     __dirname, // 内置插件
+    path.join(process.cwd(),`.${process.env.mode}.env`), // 环境变量
 ]
 const watcher=watch(watchDirs.filter(p=>{
     return fs.existsSync(p)
 }))
-
 const changeListener=(filePath:string)=>{
     const bot=HMR.bot
+    if(filePath.endsWith('.env')){
+        bot.logger.info(`\`.${process.env.mode}.env\` changed restarting ...`)
+        return process.exit(51)
+    }
     const pluginFiles=bot.pluginList.map(p=>p.filePath)
     if(watchDirs.some(dir=>filePath.startsWith(dir)) && pluginFiles.includes(filePath)){
         const plugin=bot.pluginList.find(p=>p.filePath===filePath)

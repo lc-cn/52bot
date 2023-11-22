@@ -88,7 +88,7 @@ export function loadPlugin(name: string):Plugin {
     ]
     for (const path of maybePath) {
         try{
-            const result=require(path)
+            const result=require('jiti')(__filename)(path)
             if(result.default) {
                 const {default:plugin,...other}=result
                 Object.assign(plugin,other)

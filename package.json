@@ -1,20 +1,23 @@
 {
     "name": "ts-qqbot",
-    "version": "0.0.10-12",
+    "version": "0.0.11",
     "description": "qq机器人开发框架",
     "main": "lib/index.js",
+    "bin": "./bin.js",
     "scripts": {
         "start": "node .",
         "compile": "tsc --project tsconfig.build.json && tsc-alias -p tsconfig.build.json",
         "dtsc": "dtsc --project tsconfig.dtsc.json",
         "clean": "rm -rf ./lib",
         "build": "npm run clean && npm run compile && npm run dtsc",
-        "dev": "ts-node -r tsconfig-paths/register ./src/test.ts",
+        "dev": "node -r tsconfig-paths/register ./bin.js --mode dev --entry src",
         "pub": "rm -rf ./lib/test.js && npm publish --access public",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "files": [
         "lib",
+        "bin.js",
+        "start.js",
         "LICENSE",
         "README.md"
     ],
@@ -28,6 +31,9 @@
     "dependencies": {
         "axios": "^1.6.1",
         "chokidar": "^3.5.3",
+        "tsconfig-paths": "^4.2.0",
+        "dotenv": "^16.3.1",
+        "jiti": "^1.21.0",
         "log4js": "^6.9.1",
         "ws": "^8.14.0"
     },
@@ -35,7 +41,6 @@
         "@types/node": "^20.5.9",
         "@types/ws": "^8.5.5",
         "dtsc": "^2.3.0",
-        "ts-node-dev": "^2.0.0",
         "tsc-alias": "^1.8.8",
         "tsconfig-paths": "^4.2.0",
         "typescript": "^5.2.2"
