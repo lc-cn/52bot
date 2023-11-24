@@ -10,17 +10,12 @@ npx ts-qqbot init -m dev
 - 填写配置
 打开生成在根目录的 `.dev.env` 文件，填入相关环境变量
 ```text
-appid = ""                                # 填入你的机器人appid
-token = ""                                # 填入你的机器人token
-secret = ""                               # 填入你的机器人secret
-logLevel = ""                             # 日志输出等级 默认为info，不填请注释本行
-private = true                            # 如果没有私聊权限 请注释本行
-group = true                              # 如果没有群聊权限 请注释本行
-public = true                             # 如果是私域机器人 请注释本行
+adapters = qq                             # 使用的适配器，多个适配器可用 “,” 分隔
 builtPlugins = commandParser,hmr          # 启用的内置插件列表
 pluginDirs = plugins                      # 需要加载哪个本地文件夹下的插件，多个文件夹可用 “,” 分隔
 ```
 - 启动
+- 注意：首次启动会为你生成对应适配器的默认配置文件，需要您完成配置后再次启动
 ```text
 npx ts-qqbot -m dev
 ```

@@ -1,51 +1,41 @@
-import {Plugin, PluginMap} from "./plugin";
-import {QQBot} from "./qqBot";
-import {DirectMessageEvent, GroupMessageEvent, GuildMessageEvent, PrivateMessageEvent} from "@/message";
+import {EventEmitter} from "events";
+import {Logger, getLogger} from "log4js";
 import {Middleware} from "@/middleware";
+import {Plugin, PluginMap} from "@/plugin";
+import {Dict, LogLevel} from "@/types";
 import {loadPlugin} from "@/utils";
-import {Channel} from './entries/channel'
-import {Guild} from "./entries/guild";
-import {GuildMember} from "./entries/guildMember";
-import {
-    reloadGuilds,
-    reloadChannels,
-    reloadGroupList,
-    reloadGroupMemberList,
-    reloadGuildMembers, reloadFriendList
-} from "./internal/onlinelistener";
-import {Group} from "@/entries/group";
-import {Friend} from "@/entries/friend";
-import {GroupMember} from "@/entries/groupMember";
-import {BotKey} from "@/constans";
-import {Dict} from "@/types";
-import * as path from "path";
-import * as fs from "fs";
+import {ZhinKey} from "@/constans";
+import path from "path";
+import fs from "fs";
+import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
 
-type GuildMemberMap = Map<string, GuildMember.Info>
-type GroupMemberMap = Map<string, GroupMember.Info>
-
-export class Bot extends QQBot {
+export class Zhin extends EventEmitter {
     middlewares: Middleware[] = []
+    logger: Logger = getLogger(`[Zhin]`)
+    adapters: Map<string, Adapter> = new Map<string, Adapter>()
     plugins: PluginMap = new PluginMap()
-    guilds: Map<string, Guild.Info> = new Map<string, Guild.Info>()
-    guildMembers: Map<string, GuildMemberMap> = new Map<string, GuildMemberMap>()
-    channels: Map<string, Channel.Info> = new Map<string, Channel.Info>()
-    groups: Map<string, Group.Info> = new Map<string, Group.Info>()
-    groupMembers: Map<string, GroupMemberMap> = new Map<string, GroupMemberMap>()
-    friends: Map<string, Friend.Info> = new Map<string, Friend.Info>()
 
-    constructor(config: Bot.Config) {
-        super(config)
+    constructor(public config: Zhin.Config) {
+        super();
+        this.logger.level = config.logLevel
+        this.initAdapter(config.adapters)
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
     }
 
-    pickGuild = Guild.from.bind(this)
-    pickGuildMember = GuildMember.from.bind(this)
-    pickGroup = Group.from.bind(this)
-    pickGroupMember = GroupMember.from.bind(this)
-    pickFriend = Friend.from.bind(this)
-    pickChannel = Channel.from.bind(this)
+    initAdapter(adapter_names: string[]) {
+        for (const name of adapter_names) {
+            if (!name) continue
+            try {
+                const adapter = Adapter.load(name)
+                this.adapters.set(name, adapter)
+                adapter.mount(this)
+                this.logger.mark(`适配器： ${name} 已加载`)
+            } catch (e) {
+                this.logger.error(e.message)
+            }
+        }
+    }
 
     get pluginList() {
         return [...this.plugins.values()].filter(p => p.status === 'enabled')
@@ -76,90 +66,27 @@ export class Bot extends QQBot {
         return this.commandList.find(command => command.name === name)
     }
 
-    getSupportMiddlewares(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent) {
-        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type))
+    getSupportMiddlewares<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
+        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type as any))
             .reduce((result, plugin) => {
                 result.push(...plugin.middlewares)
                 return result
             }, [] as Middleware[])
     }
 
-    getSupportCommands(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent) {
-        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type))
+    getSupportCommands<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
+        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type as any))
             .flatMap(plugin => plugin.commandList).filter(command => {
-                return !command.scopes?.length || command.scopes.includes(event.message_type)
+                return !command.scopes?.length || command.scopes.includes(event.message_type as any)
             })
     }
 
-    handleMessage(event: PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent) {
+    handleMessage<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
         const middleware = Middleware.compose([
             ...this.middlewares,
-            ...this.getSupportMiddlewares(event)
+            ...this.getSupportMiddlewares(adapter, bot, event)
         ]);
-        middleware(event);
-    }
-
-    async getSelfInfo() {
-        const {data: result} = await this.request.get('/users/@me')
-        return result
-    }
-
-    async createChannel(guild_id: string, channelInfo: Omit<Channel.Info, 'id'>): Promise<Channel.Info> {
-        return this.pickGuild(guild_id).createChannel(channelInfo)
-    }
-
-    async updateChannel({channel_id, ...updateInfo}: {
-        channel_id: string
-    } & Partial<Pick<Channel.Info, 'name' | 'position' | 'parent_id' | 'private_type' | 'speak_permission'>>) {
-        return this.pickChannel(channel_id).update(updateInfo)
-    }
-
-    async deleteChannel(channel_id: string) {
-        return this.pickChannel(channel_id).delete()
-    }
-
-    async getGuildInfo(guild_id: string) {
-        return this.guilds.get(guild_id)
-    }
-
-    async getGuildRoles(guild_id: string) {
-        return this.pickGuild(guild_id).roles
-    }
-
-    async getGuildList() {
-        return [...this.guilds.values()]
-    }
-
-    async getGuildMemberList(guild_id: string) {
-        return [...this.guildMembers.get(guild_id).values()]
-    }
-
-    async getGuildMemberInfo(guild_id: string, member_id: string) {
-        return this.guildMembers.get(guild_id)?.get(member_id)
-    }
-
-    async getGroupMemberList(group_id: string) {
-        return [...this.groupMembers.get(group_id).values()]
-    }
-
-    async getGroupMemberInfo(group_id: string, member_id: string) {
-        return this.groupMembers.get(group_id)?.get(member_id)
-    }
-
-    async getFriendList() {
-        return [...this.friends.values()]
-    }
-
-    async getFriendInfo(friend_id: string) {
-        return this.friends.get(friend_id)
-    }
-
-    async getChannelList(guild_id: string) {
-        return [...this.channels.values()]
-    }
-
-    async getChannelInfo(channel_id: string) {
-        return this.channels.get(channel_id)
+        middleware(adapter, bot, event);
     }
 
     enable(name: string): this
@@ -187,11 +114,11 @@ export class Bot extends QQBot {
     }
 
     emit(event: string, ...args: any[]) {
-        if(['plugin-beforeMount', 'plugin-mounted','plugin-beforeUnmount', 'plugin-unmounted'].includes(event)){
-            const plugin:Plugin=args[0]
-            const method=event.split('-')[1]
-            if(plugin && plugin['lifecycle'][method]?.length){
-                for(const lifecycle of plugin['lifecycle'][method]){
+        if (['plugin-beforeMount', 'plugin-mounted', 'plugin-beforeUnmount', 'plugin-unmounted'].includes(event)) {
+            const plugin: Plugin = args[0]
+            const method = event.split('-')[1]
+            if (plugin && plugin['lifecycle'][method]?.length) {
+                for (const lifecycle of plugin['lifecycle'][method]) {
                     lifecycle()
                 }
             }
@@ -231,7 +158,7 @@ export class Bot extends QQBot {
         }
         this.emit('plugin-beforeMount', plugin)
         this.plugins.set(plugin.name, plugin)
-        plugin[BotKey] = this
+        plugin[ZhinKey] = this
         for (const [name, service] of plugin.services) {
             if (!this.services[name]) {
                 this.emit('service-beforeRegister', name, service)
@@ -262,7 +189,7 @@ export class Bot extends QQBot {
         }
         this.emit('plugin-beforeUnmount', plugin)
         this.plugins.delete(plugin.name)
-        plugin[BotKey] = null
+        plugin[ZhinKey] = null
         for (const [name, service] of plugin.services) {
             if (this.services[name] && this.services[name] === service) {
                 this.emit('service-beforeDestroy', name, service)
@@ -276,18 +203,11 @@ export class Bot extends QQBot {
     }
 
     async start() {
-        await this.sessionManager.start()
-        await reloadGuilds.call(this)
-        for (const [guild_id] of this.guilds) {
-            await reloadChannels.call(this, guild_id)
-            await reloadGuildMembers.call(this, guild_id)
+        for(const [name,adapter] of this.adapters){
+            adapter.emit('start')
+            this.logger.info(`适配器： ${name} 已启动`)
         }
-        await reloadGroupList.call(this)
-        for (const [group_id] of this.groups) {
-            await reloadGroupMemberList.call(this, group_id)
-        }
-        await reloadFriendList.call(this)
-        this.logger.mark(`加载了${this.friends.size}个好友，${this.groups.size}个群，${this.guilds.size}个频道`)
+        this.emit('start')
     }
 
     loadFromBuilt(plugins: Plugin.BuiltPlugins[]) {
@@ -306,7 +226,7 @@ export class Bot extends QQBot {
     loadFromDir(...dirs: string[]) {
         return this.loadPlugins(dirs
             .map(dir => path.resolve(process.cwd(), dir))
-            .reduce((result:string[], dir) => {
+            .reduce((result: string[], dir) => {
                 if (!fs.existsSync(dir)) return result
                 const files = fs.readdirSync(dir)
                 result.push(...files.map(file => path.join(dir, file)))
@@ -319,10 +239,67 @@ export class Bot extends QQBot {
     }
 }
 
-export namespace Bot {
-    export interface Config extends QQBot.Config {
+export interface Zhin {
+    on<T extends keyof Zhin.EventMap>(event: T, listener: Zhin.EventMap[T]): this
+
+    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, listener: (...args: any[]) => any): this
+
+    off<T extends keyof Zhin.EventMap>(event: T, callback?: Zhin.EventMap[T]): this
+
+    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback?: (...args: any[]) => void): this
+
+    once<T extends keyof Zhin.EventMap>(event: T, listener: Zhin.EventMap[T]): this
+
+    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, listener: (...args: any[]) => any): this
+
+    emit<T extends keyof Zhin.EventMap>(event: T, ...args: Parameters<Zhin.EventMap[T]>): boolean
+
+    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, ...args: any[]): boolean
+
+    addListener<T extends keyof Zhin.EventMap>(event: T, listener: Zhin.EventMap[T]): this
+
+    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, listener: (...args: any[]) => any): this
+
+    addListenerOnce<T extends keyof Zhin.EventMap>(event: T, callback: Zhin.EventMap[T]): this
+
+    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback: (...args: any[]) => void): this
+
+    removeListener<T extends keyof Zhin.EventMap>(event: T, callback?: Zhin.EventMap[T]): this
+
+    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback?: (...args: any[]) => void): this
+
+    removeAllListeners<T extends keyof Zhin.EventMap>(event: T): this
+
+    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>): this
+
+}
+
+export namespace Zhin {
+    export interface Config {
+        adapters: string[]
+        logLevel: LogLevel
+    }
+
+    export const adapters: Map<string, Adapter> = new Map<string, Adapter>()
+
+    export interface EventMap {
+        'start'(): void
+
+        'plugin-beforeMount'(plugin: Plugin): void
+
+        'plugin-mounted'(plugin: Plugin): void
+
+        'plugin-beforeUnmount'(plugin: Plugin): void
+
+        'plugin-unmounted'(plugin: Plugin): void
+        'message':<AD extends Adapter>(adapter:AD,bot:AdapterBot<AD>,message:AdapterReceive<AD>)=>void
+        'service-beforeRegister': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
+        'service-registered': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
+        'service-beforeDestroy': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
+        'service-destroyed': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
     }
 
     export interface Services {
+
     }
 }

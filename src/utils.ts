@@ -1,13 +1,8 @@
 import * as path from "path";
 import * as fs from "fs";
 import {Plugin} from "@/plugin";
+import YAML from "yaml";
 
-export const toObject = <T = any>(data: any) => {
-    if (Buffer.isBuffer(data)) return JSON.parse(data.toString()) as T;
-    if (typeof data === 'object') return data as T;
-    if (typeof data === 'string') return JSON.parse(data) as T;
-    // return String(data);
-};
 
 export function isEmpty<T>(data: T) {
     if (!data) return true;
@@ -95,21 +90,13 @@ export function loadPlugin(name: string):Plugin {
                 return plugin
             }
             return result
-        }catch {}
+        }catch (e){
+            console.log(e.message)
+        }
     }
-    throw new Error('找不到插件：' + name);
+    throw new Error(`加载插件(${name}) 失败`);
 }
 
-export function loadPlugins(dir: string):Plugin[] {
-    return fs.readdirSync(dir).map(name => {
-        try{
-            return loadPlugin(name)
-        }catch {
-            return null
-        }
-    })
-        .filter(Boolean);
-}
 export function getCallerStack(){
     const origPrepareStackTrace = Error.prepareStackTrace
     Error.prepareStackTrace = function (_, stack) {
@@ -146,6 +133,12 @@ export function formatTime(seconds:number){
     }
     return result.trimEnd()
 }
-export async function saveToLocal(path:string,data:Buffer){
-    await fs.promises.writeFile(path,data)
+export function loadYamlConfigOrCreate<T>(name:string,defaultValue:T):[T,boolean]{
+    const filePath=path.resolve(process.cwd(),name)
+    let needCreate=!fs.existsSync(filePath)
+    if(needCreate){
+        fs.writeFileSync(filePath,YAML.stringify(defaultValue),'utf8')
+    }
+    const fileData=fs.readFileSync(filePath,'utf8')
+    return [YAML.parse(fileData),needCreate]
 }

@@ -3,7 +3,7 @@
 "use strict";
 const path = require("path");
 const fs = require("fs");
-const jiti=require('jiti')(__dirname)
+const jiti = require('jiti')(__dirname)
 const defaultArgv = {
 	mode: 'prod',
 	entry: 'lib',
@@ -30,15 +30,12 @@ for (const key of args) {
 			defaultArgv.init = true
 	}
 }
-if(defaultArgv.init){
-	fs.writeFileSync(path.resolve(process.cwd(),`.${defaultArgv.mode}.env`), "appid = \n" +
-		"token = \n" +
-		"secret = \n" +
-		"group = true\n" +
-		"public = true\n" +
+if (defaultArgv.init) {
+	fs.writeFileSync(path.resolve(process.cwd(), `.${defaultArgv.mode}.env`), "adapters = qq\n" +
 		"builtPlugins = commandParser,hmr,echo\n" +
+		"logLevel = info\n" +
 		"pluginDirs = plugins")
 	console.log(`请在.${defaultArgv.mode}.env中配置相应参数后再次调用\`npx ts-qqbot\` 启动`)
 	process.exit(0)
 }
-jiti(path.resolve(__dirname,defaultArgv.entry)).startBotWorker(defaultArgv.entry,defaultArgv.mode)
+jiti(path.resolve(__dirname, defaultArgv.entry)).startBotWorker(defaultArgv.entry, defaultArgv.mode)

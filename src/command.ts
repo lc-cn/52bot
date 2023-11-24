@@ -1,16 +1,12 @@
-import {GroupMessageEvent, GuildMessageEvent, Message, PrivateMessageEvent} from "@/message";
 import {deepClone, findLastIndex, isEmpty, trimQuote} from "@/utils";
 import {Dict} from "@/types";
-import {Sendable} from "@/elements";
-import {Bot} from "@/bot";
-import {User} from "@/entries/user";
+import {Adapter, AdapterBot, AdapterReceive, AdapterSend} from "@/adapter";
 
 type Argv = {
     name: string;
     args: Array<Command.Domain[Command.Type] | Command.Domain[Command.Type][]>;
     options: Record<string, Command.Domain[Command.Type] | Command.Domain[Command.Type][]>;
 };
-type MessageEvent=GroupMessageEvent|PrivateMessageEvent|GuildMessageEvent
 export interface HelpOptions {
     showHidden?: boolean;
     showAuth?: boolean;
@@ -80,12 +76,11 @@ type OptionValueType<S extends string> = OptionType<S> extends {
 
 // 定义一个Command类
 export class Command<A extends any[] = [], O = {}> {
-    filters: Command.Filters = {};
-    callbacks: Command.CallBack<object, A, O>[] = [];
-    checkers: Command.CallBack<object, A, O>[] = [];
+    callbacks: Command.CallBack<Adapter, A, O>[] = [];
+    checkers: Command.CallBack<Adapter, A, O>[] = [];
     public name?: string;
     scopes: Command.Scope[] = [];
-    permissions: User.Permission[] = [];
+    permissions: ('admin'|'all')[] = [];
     private aliasNames: string[] = [];
     public parent: Command = null;
     public children: Command[] = [];
@@ -95,10 +90,7 @@ export class Command<A extends any[] = [], O = {}> {
 
     constructor(public config: Command.Config = {}) {}
 
-    setFilters(filters: Command.Filters) {
-        this.filters = filters;
-    }
-    permission(...permissions: User.Permission[]) {
+    permission(...permissions: ('admin'|'all')[]) {
         this.permissions = [
             ...new Set([...this.permissions,...permissions])
         ]
@@ -114,7 +106,7 @@ export class Command<A extends any[] = [], O = {}> {
         ]
         return this
     }
-    private isMatchedRuntime<S extends MessageEvent>(runtime:Command.RunTime<S,A,O>){
+    private isMatchedRuntime<AD extends Adapter>(runtime:Command.RunTime<AD,A,O>){
         const checkScope=()=>{
             if(!this.scopes?.length) return true
             return this.scopes.some(scope=>{
@@ -166,7 +158,7 @@ export class Command<A extends any[] = [], O = {}> {
         return command;
     }
 
-    check<S extends object>(callback: Command.CallBack<S, A, O>): this {
+    check<S extends Adapter>(callback: Command.CallBack<S, A, O>): this {
         this.checkers.push(callback);
         return this;
     }
@@ -269,39 +261,36 @@ export class Command<A extends any[] = [], O = {}> {
         return output;
     }
 
-    action<S extends MessageEvent = MessageEvent>(callback: Command.CallBack<S, A, O>) {
+    action<AD extends Adapter=Adapter>(callback: Command.CallBack<AD, A, O>) {
         this.callbacks.push(callback);
         return this as Command<A, O>;
     }
 
-    async execute<S extends MessageEvent = MessageEvent>(
-        message: S,
+    async execute<AD extends Adapter,M extends AdapterReceive<AD>>(
+        adapter:AD,
+        bot:AdapterBot<AD>,
+        message: M,
         template = message.raw_message,
-    ): Promise<Sendable | void> {
-        let runtime: Command.RunTime<S, A, O> | void;
+    ): Promise<AdapterSend<AD> | void> {
+        let runtime: Command.RunTime<AD, A, O> | void;
         try {
-            runtime = this.parse(message, template);
+            runtime = this.parse(adapter,bot,message, template);
         } catch (e) {
-            return {
-                type:'text',
-                text:e.message
-            };
+            return e.message;
         }
         if (!runtime) return;
-        if(!this.isMatchedRuntime<S>(runtime)) return
-        const filterFn = Command.createFilterFunction(this.filters);
-        if (!filterFn(runtime.message)) return;
+        if(!this.isMatchedRuntime<AD>(runtime)) return
         for (const checker of runtime.command.checkers) {
             const result = await checker.apply(runtime.command, [
-                runtime as Command.RunTime<S, A, O>,
-                ...(runtime as Command.RunTime<S, A, O>).args,
+                runtime as Command.RunTime<AD, A, O>,
+                ...(runtime as Command.RunTime<AD, A, O>).args,
             ]);
             if (result) return result;
         }
         for (const callback of runtime.command.callbacks) {
             const result = await callback.apply(runtime.command, [
-                runtime as Command.RunTime<S, A, O>,
-                ...(runtime as Command.RunTime<S, A, O>).args,
+                runtime as Command.RunTime<AD, A, O>,
+                ...(runtime as Command.RunTime<AD, A, O>).args,
             ]);
             if (result) return result;
         }
@@ -432,15 +421,15 @@ export class Command<A extends any[] = [], O = {}> {
         return argv;
     }
 
-    match<S extends Message>(message: S, template: string): boolean {
+    match<AD extends Adapter>(adapter:AD,bot:AdapterBot<AD>,message: AdapterReceive<AD>, template: string): boolean {
         try {
-            return !!this.parse(message, template);
+            return !!this.parse(adapter,bot,message, template);
         } catch {
             return false;
         }
     }
 
-    parse<S extends Message>(message: S, template: string): Command.RunTime<S, A, O> | void {
+    parse<AD extends Adapter>(adapter:AD,bot:AdapterBot<AD>,message: AdapterReceive<AD>, template: string): Command.RunTime<AD, A, O> | void {
         let argv = this.parseSugar(template);
         if (!argv.name) argv = this.parseArgv(template);
         if (argv.name !== this.name) {
@@ -451,7 +440,8 @@ export class Command<A extends any[] = [], O = {}> {
         return {
             args: argv.args as A,
             options: argv.options as O,
-            bot:(message.bot as Bot),
+            adapter,
+            bot,
             command: this,
             message,
         };
@@ -568,69 +558,14 @@ export namespace Command {
             [P in keyof O]?: WithRegIndex<O[P]>;
         };
     };
-    type MaybeArray<T = any> = T | T[];
-    type AttrFilter<T extends object> = {
-        [P in keyof Message]?: MaybeArray<P> | boolean;
-    };
-    export type Filters = AttrFilter<Message> | WithFilter | UnionFilter | ExcludeFilter;
-    export type WithFilter = {
-        $and: Filters;
-    };
-    export type UnionFilter = {
-        $or: Filters;
-    };
-    export type ExcludeFilter = {
-        $not: Filters;
-    };
 
-    export function createFilterFunction<T extends Filters>(filters: T) {
-        const filterFn = <K extends keyof T | keyof Message>(
-            session: Message,
-            key: K,
-            value: any,
-        ) => {
-            if (typeof value === "boolean" && typeof session[key as keyof Message] !== "boolean") {
-                return value;
-            }
-            if (Array.isArray(value)) {
-                return value.includes(session[key as keyof Message]);
-            }
-            if (typeof value !== "object") return value === session[key as keyof Message];
-            return createFilterFunction(value)(session);
-        };
-        if (filters["$and"]) {
-            return (session: Message) => {
-                return Object.entries(filters["$and"]).every(([key, value]) =>
-                    filterFn(session, key as keyof T, value as any),
-                );
-            };
-        }
-        if (filters["$or"]) {
-            return (session: Message) => {
-                return Object.entries(filters["$or"]).some(([key, value]) =>
-                    filterFn(session, key as keyof T, value as any),
-                );
-            };
-        }
-        if (filters["$not"]) {
-            return (session: Message) => {
-                return Object.entries(filters["$not"]).every(
-                    ([key, value]) => !filterFn(session, key as keyof T, value as any),
-                );
-            };
-        }
-        return (message: Message) => {
-            return Object.entries(filters).every(([key, value]) =>
-                filterFn(message, key as keyof T, value as any),
-            );
-        };
-    }
 
-    export type RunTime<S extends object, A extends any[] = [], O = {}> = {
+    export type RunTime<AD extends Adapter, A extends any[] = [], O = {}> = {
         args: A;
+        adapter:AD
         options: O;
-        bot:Bot;
-        message: S;
+        bot:AdapterBot<AD>;
+        message: AdapterReceive<AD>;
         command: Command<A, O>;
     };
     export type ArgConfig<S extends string = any> = {
@@ -681,10 +616,10 @@ export namespace Command {
             [key: string]: OptionConfig<L>;
         } & OptionsConfig<R>
         : {};
-    export type CallBack<Message extends object, A extends any[] = [], O = {}> = (
-        runtime: RunTime<Message, A, O>,
+    export type CallBack<AD extends Adapter=Adapter, A extends any[] = [], O = {}> = (
+        runtime: RunTime<AD, A, O>,
         ...args: A
-    ) => MayBePromise<Sendable | void>;
+    ) => MayBePromise<AdapterSend<AD> | void>;
 
     export interface Domain {
         text: string;
@@ -692,7 +627,7 @@ export namespace Command {
         integer: number;
         number: number;
         boolean: boolean;
-        any: Sendable;
+        any: any;
         user_id: string;
         regexp: RegExp;
         date: Date;

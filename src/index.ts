@@ -1,16 +1,11 @@
 import {fork, ForkOptions} from "child_process";
 import path from "path";
-
-export * from './qqBot'
-export * from './bot'
-export * from './elements'
 export * from './types'
 export * from './utils'
 export * from './command'
-export * from './message'
 export * from './middleware'
-export * from './prompt'
 export * from './plugin'
+export * from './zhin'
 
 interface Message {
     type: "start" | "queue";
