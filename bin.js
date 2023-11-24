@@ -36,7 +36,7 @@ if (defaultArgv.init) {
 		"logLevel = info\n" +
 		"modulePlugins = \n" +
 		"pluginDirs = plugins")
-	console.log(`请在.${defaultArgv.mode}.env中配置相应参数后再次调用\`npx ts-qqbot\` 启动`)
+	console.log(`请在.${defaultArgv.mode}.env中配置相应参数后再次调用\`npx 52bot\` 启动`)
 	process.exit(0)
 }
 jiti(path.resolve(__dirname, defaultArgv.entry)).startBotWorker(defaultArgv.entry, defaultArgv.mode)

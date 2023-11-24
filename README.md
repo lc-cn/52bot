@@ -1,11 +1,11 @@
-# ts-qqbot
+# 52bot
 ## 1. 快速上手
 - 安装 & 初始化
 ```shell
 # 1. 安装依赖
-npm i ts-qqbot # or yarn add ts-qqbot
+npm i 52bot # or yarn add 52bot
 # 2. 初始化配置文件
-npx ts-qqbot init -m dev
+npx 52bot init -m dev
 ```
 - 填写配置
 打开生成在根目录的 `.dev.env` 文件，填入相关环境变量
@@ -17,14 +17,14 @@ pluginDirs = plugins                      # 需要加载哪个本地文件夹下
 - 启动
 - 注意：首次启动会为你生成对应适配器的默认配置文件，需要您完成配置后再次启动
 ```text
-npx ts-qqbot -m dev
+npx 52bot -m dev
 ```
 
 ##  插件开发
 - 新建文件`testPlugin.js`
 
 ```javascript
-const {Plugin} = require('ts-qqbot')
+const {Plugin} = require('52bot')
 
 const testPlugin=new Plugin('test')
 
@@ -66,7 +66,7 @@ console.log(testPlugin.foo) // 输出 bar
 
 - 当插件被加载后，后续加载的插件即可访问到该服务
 ```javascript
-const {Plugin} = require('ts-qqbot')
+const {Plugin} = require('52bot')
 
 const helloPlugin=new Plugin('hello')
 console.log(helloPlugin.foo) // 输出bar
@@ -76,7 +76,7 @@ module.exports=testPlugin
 - 可选：定义服务类型
 - 开发者为服务添加类型声明后，其他人在使用服务时，将获得类型提示
 ```typescript
-declare module 'ts-qqbot'{
+declare module '52bot'{
     namespace Bot{
         interface Services{
             foo:string
@@ -86,7 +86,7 @@ declare module 'ts-qqbot'{
 ```
 ## 使用插件
 ```javascript
-const {Bot} = require('ts-qqbot')
+const {Bot} = require('52bot')
 const bot = new Bot({
 	// ...
 })

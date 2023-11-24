@@ -77,8 +77,8 @@ export function loadPlugin(name: string):Plugin {
     const maybePath = [
         path.resolve(__dirname, 'plugins', name),
         path.resolve(process.cwd(), 'plugins', name),
-        `@qqbot/plugin-${name}`,
-        `qqbot-plugin-${name}`,
+        `@52bot/plugin-${name}`,
+        `52bot-plugin-${name}`,
         name
     ]
     for (const path of maybePath) {
