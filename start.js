@@ -20,7 +20,7 @@ if(envConfig.parsed){
 	})
 	zhin.loadFromBuilt(builtPlugins)
 	zhin.loadFromModule(modulePlugins)
-	zhin.loadFromDir(pluginDir)
+	zhin.loadFromDir(...pluginDir)
 	zhin.start()
 }else{
 	throw envConfig.error||new Error(`解析文件: .${mode}.env 失败`)

@@ -206,19 +206,22 @@ export class Zhin extends EventEmitter {
     }
 
     loadFromBuilt(plugins: Plugin.BuiltPlugins[]) {
-        return this.loadPlugins(plugins.map(p => {
+        return this.loadPlugins(plugins
+            .filter(Boolean).map(p => {
             return path.resolve(__dirname, 'plugins', p)
         }))
     }
 
     loadFromModule(plugins: string[]) {
-        return this.loadPlugins(plugins.map(p => {
+        return this.loadPlugins(plugins
+            .filter(Boolean).map(p => {
             return path.resolve(process.cwd(), 'node_modules', p)
         }))
     }
 
     loadFromDir(...dirs: string[]) {
         return this.loadPlugins(dirs
+            .filter(Boolean)
             .map(dir => path.resolve(process.cwd(), dir))
             .reduce((result: string[], dir) => {
                 if (!fs.existsSync(dir)) return result
