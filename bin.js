@@ -34,6 +34,7 @@ if (defaultArgv.init) {
 	fs.writeFileSync(path.resolve(process.cwd(), `.${defaultArgv.mode}.env`), "adapters = qq\n" +
 		"builtPlugins = commandParser,hmr,echo\n" +
 		"logLevel = info\n" +
+		"modulePlugins = \n" +
 		"pluginDirs = plugins")
 	console.log(`请在.${defaultArgv.mode}.env中配置相应参数后再次调用\`npx ts-qqbot\` 启动`)
 	process.exit(0)

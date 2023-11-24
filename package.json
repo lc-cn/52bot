@@ -1,6 +1,6 @@
 {
     "name": "ts-qqbot",
-    "version": "0.0.11-4",
+    "version": "0.0.12",
     "description": "qq机器人开发框架",
     "main": "lib/index.js",
     "bin": "./bin.js",

@@ -59,8 +59,8 @@ export class Zhin extends EventEmitter {
         return this.commandList.find(command => command.name === name)
     }
 
-    getSupportMiddlewares<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>):Middleware[] {
-        return this.pluginList.filter(plugin => !plugin.adapters||plugin.adapters.includes(adapter.name))
+    getSupportMiddlewares<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>): Middleware[] {
+        return this.pluginList.filter(plugin => !plugin.adapters || plugin.adapters.includes(adapter.name))
             .reduce((result, plugin) => {
                 result.push(...plugin.middlewares)
                 return result
@@ -68,7 +68,7 @@ export class Zhin extends EventEmitter {
     }
 
     getSupportCommands<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
-        return this.pluginList.filter(plugin => !plugin.adapters||plugin.adapters.includes(adapter.name))
+        return this.pluginList.filter(plugin => !plugin.adapters || plugin.adapters.includes(adapter.name))
             .flatMap(plugin => plugin.commandList)
     }
 
@@ -191,11 +191,18 @@ export class Zhin extends EventEmitter {
     }
 
     async start() {
-        for(const [name,adapter] of this.adapters){
+        for (const [name, adapter] of this.adapters) {
             adapter.emit('start')
             this.logger.info(`适配器： ${name} 已启动`)
         }
         this.emit('start')
+    }
+
+    private loadPlugins(dirs: string[]) {
+        for (const plugin of dirs) {
+            this.mount(plugin)
+        }
+        return this
     }
 
     loadFromBuilt(plugins: Plugin.BuiltPlugins[]) {
@@ -204,11 +211,10 @@ export class Zhin extends EventEmitter {
         }))
     }
 
-    private loadPlugins(dirs: string[]) {
-        for (const plugin of dirs) {
-            this.mount(plugin)
-        }
-        return this
+    loadFromModule(plugins: string[]) {
+        return this.loadPlugins(plugins.map(p => {
+            return path.resolve(process.cwd(), 'node_modules', p)
+        }))
     }
 
     loadFromDir(...dirs: string[]) {
@@ -280,7 +286,8 @@ export namespace Zhin {
         'plugin-beforeUnmount'(plugin: Plugin): void
 
         'plugin-unmounted'(plugin: Plugin): void
-        'message':<AD extends Adapter>(adapter:AD,bot:AdapterBot<AD>,message:AdapterReceive<AD>)=>void
+
+        'message': <AD extends Adapter>(adapter: AD, bot: AdapterBot<AD>, message: AdapterReceive<AD>) => void
         'service-beforeRegister': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
         'service-registered': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
         'service-beforeDestroy': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void

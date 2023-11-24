@@ -12,13 +12,15 @@ if(envConfig.parsed){
 	const adapters=config.adapters?.split(',')||[]
 
 	const builtPlugins=config.builtPlugins?.split(',')||[]
-	const loadPluginDirs=config.pluginDirs?.split(',')||[]
+	const modulePlugins = config.modulePlugins?.split(',')||[]
+	const pluginDir=config.pluginDirs?.split(',')||[]
 	const zhin=new Zhin({
 		...config,
 		adapters
 	})
 	zhin.loadFromBuilt(builtPlugins)
-	zhin.loadFromDir(...loadPluginDirs)
+	zhin.loadFromModule(modulePlugins)
+	zhin.loadFromDir(pluginDir)
 	zhin.start()
 }else{
 	throw envConfig.error||new Error(`解析文件: .${mode}.env 失败`)
