@@ -1,3 +1,5 @@
+import {Command} from "@/command";
+
 export interface MessageBase{
     user_id?:string
     group_id?:string
@@ -6,7 +8,7 @@ export interface MessageBase{
     reply?(...args:any[]):Promise<any>
     sender?:MessageSender
     raw_message:string
-    message_type:string
+    message_type:Command.Scope
 }
 type MessageSender={
     user_id?:string

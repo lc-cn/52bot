@@ -76,11 +76,9 @@ type OptionValueType<S extends string> = OptionType<S> extends {
 
 // 定义一个Command类
 export class Command<A extends any[] = [], O = {}> {
-    callbacks: Command.CallBack<Adapter, A, O>[] = [];
-    checkers: Command.CallBack<Adapter, A, O>[] = [];
+    private callbacks: Command.CallBack<Adapter, A, O>[] = [];
+    private checkers: Command.CallBack<Adapter, A, O>[] = [];
     public name?: string;
-    scopes: Command.Scope[] = [];
-    permissions: ('admin'|'all')[] = [];
     private aliasNames: string[] = [];
     public parent: Command = null;
     public children: Command[] = [];
@@ -90,36 +88,26 @@ export class Command<A extends any[] = [], O = {}> {
 
     constructor(public config: Command.Config = {}) {}
 
-    permission(...permissions: ('admin'|'all')[]) {
-        this.permissions = [
-            ...new Set([...this.permissions,...permissions])
-        ]
-        return this
+    /**
+     * 指定指令可用人员
+     * @param permissions
+     */
+    permission<T extends string=string>(...permissions: T[]) {
+        return this.check(({message},...args:A)=>{
+            if(!message.sender) return false
+            const perms=message.sender.permissions
+            if(!perms) return true
+            return permissions.some(p=>perms.includes(p))
+        })
     }
     /**
      * 指定指令可使用范围
      * @param scopes {Command.Scope[]}
      */
     scope(...scopes:Command.Scope[]){
-        this.scopes=[
-            ...new Set([...this.scopes,...scopes])
-        ]
-        return this
-    }
-    private isMatchedRuntime<AD extends Adapter>(runtime:Command.RunTime<AD,A,O>){
-        const checkScope=()=>{
-            if(!this.scopes?.length) return true
-            return this.scopes.some(scope=>{
-                return runtime.message.message_type===scope
-            })
-        }
-        const checkPermission=()=>{
-            if(!this.permissions?.length) return true
-            return this.permissions.some(permission=>{
-                return runtime.message?.sender?.permissions?.includes(permission)
-            })
-        }
-        return checkScope() && checkPermission()
+        return this.check(({message},...args:A)=>{
+            return scopes.includes(message.message_type)
+        })
     }
     option<S extends string>(
         option: S,
@@ -279,13 +267,12 @@ export class Command<A extends any[] = [], O = {}> {
             return e.message;
         }
         if (!runtime) return;
-        if(!this.isMatchedRuntime<AD>(runtime)) return
         for (const checker of runtime.command.checkers) {
-            const result = await checker.apply(runtime.command, [
+            const result = await checker.apply(this, [
                 runtime as Command.RunTime<AD, A, O>,
                 ...(runtime as Command.RunTime<AD, A, O>).args,
             ]);
-            if (result) return result;
+            if(!result) return
         }
         for (const callback of runtime.command.callbacks) {
             const result = await callback.apply(runtime.command, [

@@ -9,7 +9,7 @@ export class Plugin extends EventEmitter {
     disposes: Function[] = []
     readonly filePath:string
     private lifecycle:Dict<Function[]>={}
-    public scope: Plugin.Scope[]
+    public adapters?: string[]
     status: Plugin.Status = 'enabled'
     services:Map<string|symbol,any>=new Map<string|symbol,any>()
     commands: Map<string, Command> = new Map<string, Command>()
@@ -26,7 +26,7 @@ export class Plugin extends EventEmitter {
     }
     constructor(public name: string, config: Plugin.Config={}){
         super()
-        this.scope = [].concat(config.scope||['guild', 'group', 'private','direct'])
+        this.adapters=config.adapters
         const stack=getCallerStack()
         stack.shift() // 排除当前文件调用
         this.filePath=stack[0]?.getFileName();
@@ -180,9 +180,9 @@ export interface Plugin extends Zhin.Services{
 export namespace Plugin {
     export interface Config {
         /**
-         * 使用范围
+         * 支持的适配器
          */
-        scope?: Scope | Scope[]
+        adapters?:string[]
         /**
          * 描述
          */

@@ -2,7 +2,7 @@ import {Plugin} from "@";
 import {QQAdapter} from "@/adapters/qq";
 
 const guildManager = new Plugin('频道管理', {
-    scope: 'guild'
+    adapters: ['qq']
 });
 guildManager.command('/置顶 [message_id:string]')
     .permission('admin')

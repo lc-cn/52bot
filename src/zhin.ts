@@ -10,7 +10,6 @@ import fs from "fs";
 import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
 
 export class Zhin extends EventEmitter {
-    middlewares: Middleware[] = []
     logger: Logger = getLogger(`[Zhin]`)
     adapters: Map<string, Adapter> = new Map<string, Adapter>()
     plugins: PluginMap = new PluginMap()
@@ -56,36 +55,27 @@ export class Zhin extends EventEmitter {
         return result
     }
 
-    middleware(middleware: Middleware, before?: boolean) {
-        if (before) this.middlewares.unshift(middleware)
-        else this.middlewares.push(middleware)
-        return this
-    }
-
     findCommand(name: string) {
         return this.commandList.find(command => command.name === name)
     }
 
-    getSupportMiddlewares<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
-        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type as any))
+    getSupportMiddlewares<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>):Middleware[] {
+        return this.pluginList.filter(plugin => !plugin.adapters||plugin.adapters.includes(adapter.name))
             .reduce((result, plugin) => {
                 result.push(...plugin.middlewares)
                 return result
-            }, [] as Middleware[])
+            }, [])
     }
 
     getSupportCommands<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
-        return this.pluginList.filter(plugin => plugin.scope.includes(event.message_type as any))
+        return this.pluginList.filter(plugin => !plugin.adapters||plugin.adapters.includes(adapter.name))
             .flatMap(plugin => plugin.commandList).filter(command => {
                 return !command.scopes?.length || command.scopes.includes(event.message_type as any)
             })
     }
 
     handleMessage<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
-        const middleware = Middleware.compose([
-            ...this.middlewares,
-            ...this.getSupportMiddlewares(adapter, bot, event)
-        ]);
+        const middleware = Middleware.compose(this.getSupportMiddlewares(adapter, bot, event));
         middleware(adapter, bot, event);
     }
 
