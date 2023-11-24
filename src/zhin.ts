@@ -69,9 +69,7 @@ export class Zhin extends EventEmitter {
 
     getSupportCommands<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
         return this.pluginList.filter(plugin => !plugin.adapters||plugin.adapters.includes(adapter.name))
-            .flatMap(plugin => plugin.commandList).filter(command => {
-                return !command.scopes?.length || command.scopes.includes(event.message_type as any)
-            })
+            .flatMap(plugin => plugin.commandList)
     }
 
     handleMessage<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
