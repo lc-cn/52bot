@@ -2,5 +2,5 @@
 /lib/
 /node_modules/
 package-lock.json
-/.*.env
-/*.yaml
+/test/.*.env
+/test/*.yaml

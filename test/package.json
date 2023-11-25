@@ -1,0 +1,12 @@
+{
+    "name": "test",
+    "version": "1.0.0",
+    "scripts": {
+        "start": "52bot",
+        "dev": "pnpm -C ../core build && 52bot -m dev"
+    },
+    "dependencies": {
+        "52bot": "workspace:^0.0.3",
+        "52bot-icqq": "workspace:^0.0.1"
+    }
+}

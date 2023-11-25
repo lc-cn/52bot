@@ -1,5 +1,6 @@
 import {fork, ForkOptions} from "child_process";
 import path from "path";
+export * from './adapter'
 export * from './types'
 export * from './utils'
 export * from './command'
@@ -12,7 +13,7 @@ interface Message {
     body: any;
 }
 
-let buffer = null,timeStart: number;
+let buffer:any = null,timeStart: number;
 export function startBotWorker(entry: string, mode: string) {
     const forkOptions: ForkOptions = {
         env: {
@@ -39,6 +40,7 @@ export function startBotWorker(entry: string, mode: string) {
     });
     const closingCode = [0, 130, 137];
     cp.on("exit", code => {
+        if(!code) return
         if (code!==51) {
             process.exit(code);
         }

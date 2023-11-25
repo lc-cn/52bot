@@ -35,12 +35,12 @@ const initBot=()=>{
         }
     ])
     if(isCreate){
-        qq.zhin.logger.info('请先完善qq.yaml中的配置后继续')
+        qq.zhin!.logger.info('请先完善qq.yaml中的配置后继续')
         process.exit()
     }
     for(const {private:isPrivate,group,public:isPublic,...config} of configs){
         const botConfig:Bot.Config={
-            logLevel:qq.zhin.config.logLevel,
+            logLevel:qq.zhin!.config.logLevel,
             ...config,
             intents:[
                 group && 'GROUP_AT_MESSAGE_CREATE',
@@ -53,7 +53,7 @@ const initBot=()=>{
                 'DIRECT_MESSAGE',
                 'INTERACTION',
                 isPublic && 'PUBLIC_GUILD_MESSAGES'
-            ].filter(Boolean)
+            ].filter(Boolean) as string[]
         }
         qq.bots.push(new Bot(botConfig))
     }
@@ -61,7 +61,7 @@ const initBot=()=>{
     qq.on('stop',stopBots);
 }
 const messageHandler=(bot:Bot,message:QQMessageEvent)=>{
-    qq.zhin.emit('message',qq,bot,message)
+    qq.zhin!.emit('message',qq,bot,message)
 }
 const startBots=()=>{
     for(const bot of qq.bots){

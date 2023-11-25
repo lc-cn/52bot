@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.base",
-  "compilerOptions": {
-    "composite": false,
-    "outDir": "lib",
-    "declaration": false
-  }
-}

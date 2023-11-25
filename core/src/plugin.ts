@@ -14,7 +14,7 @@ export class Plugin extends EventEmitter {
     services:Map<string|symbol,any>=new Map<string|symbol,any>()
     commands: Map<string, Command> = new Map<string, Command>()
     middlewares: Middleware[] = [];
-    [ZhinKey]: Zhin=null
+    [ZhinKey]: Zhin|null=null
     get zhin(){
         return this[ZhinKey]
     }
@@ -29,19 +29,19 @@ export class Plugin extends EventEmitter {
         this.adapters=config.adapters
         const stack=getCallerStack()
         stack.shift() // 排除当前文件调用
-        this.filePath=stack[0]?.getFileName();
+        this.filePath=stack[0]?.getFileName()!;
         return new Proxy(this,{
-            get(target,key){
-                if(Reflect.ownKeys(target).includes(key) || target[key]) return Reflect.get(target,key)
+            get(target:Plugin,key){
+                if(Reflect.ownKeys(target).includes(key)) return Reflect.get(target,key)
                 if(!Reflect.get(target,'bot')) return Reflect.get(target,key)
-                return Reflect.get(target?.zhin?.services,key)
+                return Reflect.get(target?.zhin!.services,key)
             }
         })
     }
     service<T extends keyof Zhin.Services>(name:T): Zhin.Services[T]
     service<T extends keyof Zhin.Services>(name:T,service:Zhin.Services[T]): this
     service<T extends keyof Zhin.Services>(name:T,service?:Zhin.Services[T]){
-        if(!service) return this.zhin.services[name]
+        if(!service) return this.zhin!.services[name]
         this.services.set(name,service)
         return this
     }
@@ -73,12 +73,13 @@ export class Plugin extends EventEmitter {
             })
             if(servicesHasReady){
                 callback(this)
-                this.zhin.off('service-registered',installFn)
+                this.zhin!.off('service-registered',installFn)
             }
         }
-        this.zhin.on('service-registered',installFn)
+        this.zhin!.on('service-registered',installFn)
         return this
     }
+    // @ts-ignore
     command<S extends Command.Declare>(
         decl: S,
         initialValue?: ArgsType<Command.RemoveFirst<S>>,
@@ -95,14 +96,14 @@ export class Plugin extends EventEmitter {
     command<S extends Command.Declare>(
         decl: S,
         ...args: (ArgsType<Command.RemoveFirst<S>> | Command.Config)[]
-    ): Command<ArgsType<Command.RemoveFirst<S>>> {
+    ){
         const [nameDecl, ...argsDecl] = decl.split(/\s+/);
         if (!nameDecl) throw new Error("nameDecl不能为空");
         const nameArr = nameDecl.split(".").filter(Boolean);
         let name = nameArr.pop();
-        let parent: Command;
+        let parent: Command|undefined;
         while (nameArr.length) {
-            parent = this.findCommand(nameArr.shift());
+            parent = this.findCommand(nameArr.shift()!);
             if (!parent) throw new Error(`找不到父指令:${nameArr.join(".")}`);
         }
         const command = defineCommand(argsDecl.join(" "), ...(args as any));
@@ -111,13 +112,13 @@ export class Plugin extends EventEmitter {
             parent.children.push(command as unknown as Command);
         }
         command.name = name;
-        this.commands.set(name, command);
+        this.commands.set(name!, command);
         this.emit("command-add", command);
         this.disposes.push(() => {
-            this.commands.delete(name);
+            this.commands.delete(name!);
             this.emit("command-remove", command);
         });
-        return command as Command<ArgsType<Command.RemoveFirst<S>>>;
+        return command as unknown as Command<ArgsType<Command.RemoveFirst<S>>>;
     }
 
     /**

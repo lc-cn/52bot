@@ -11,10 +11,10 @@ export namespace Middleware {
         }
         return (adapter:AD,bot:AdapterBot<AD>,event:AdapterReceive<AD>, next?: Next) => {
             let index = -1;
-            const dispatch = (i, ctx = event) => {
+            const dispatch: (i: number, ctx?: AdapterReceive<AD>) => (Promise<any>) = (i:number, ctx:AdapterReceive<AD> = event) => {
                 if (i <= index) return Promise.reject(new Error("next() called multiple times"));
                 index = i;
-                let fn = middlewares[i];
+                let fn:Middleware<AD>|undefined = middlewares[i];
                 if (i === middlewares.length) fn = next;
                 if (!fn) return Promise.resolve();
                 try {

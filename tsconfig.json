@@ -1,12 +1,3 @@
 {
   "extends": "./tsconfig.base",
-  "compilerOptions": {
-    "esModuleInterop": true,
-    "rootDir": "src",
-    "outFile": "lib/index.d.ts",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@": ["./src"]
-    }
-  }
 }

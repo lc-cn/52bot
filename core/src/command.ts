@@ -15,7 +15,7 @@ export interface HelpOptions {
     simple?: boolean;
 }
 
-function getType(value) {
+function getType<T=any>(value:T) {
     if (value === undefined) {
         return "undefined";
     }
@@ -80,7 +80,7 @@ export class Command<A extends any[] = [], O = {}> {
     private checkers: Command.CallBack<Adapter, A, O>[] = [];
     public name?: string;
     private aliasNames: string[] = [];
-    public parent: Command = null;
+    public parent: Command|null = null;
     public children: Command[] = [];
     private sugarsConfig: Command.Sugar<A, O>[] = [];
     private argsConfig: Command.ArgsConfig = [];
@@ -118,7 +118,8 @@ export class Command<A extends any[] = [], O = {}> {
         ) as RegExpExecArray;
         if (!optionMatch) throw new Error(`option ${option} is not valid`);
         const [, shortName, required, rest, name, type, _, desc = ""] = optionMatch;
-        if (this.optionsConfig[name]) throw new Error(`option ${name} is already defined`);
+        if (this.optionsConfig[name as keyof Command.OptionsConfig]) throw new Error(`option ${name} is already defined`);
+        // @ts-ignore
         this.optionsConfig[name] = {
             type: type as Command.Type,
             name: shortName,
@@ -126,7 +127,7 @@ export class Command<A extends any[] = [], O = {}> {
             required: required === "<",
             rest: rest === "...",
             initialValue,
-        };
+        } as Command.OptionConfig;
         return this as Command<A, O & OptionType<S>>;
     }
 
@@ -142,7 +143,7 @@ export class Command<A extends any[] = [], O = {}> {
         const command = defineCommand(declareStr, ...(args as any));
         command.name = name;
         command.parent = this as any;
-        this.children.push(command);
+        this.children.push(command as any);
         return command;
     }
 
@@ -183,16 +184,16 @@ export class Command<A extends any[] = [], O = {}> {
     }
 
     use(middleware: (command: Command<any[], any>) => any) {
-        middleware(this);
+        middleware(this as any);
     }
 
     //显示帮助信息
     help(
         { simple, showHidden, dep = 1, current = 0 }: HelpOptions = {},
         allowList: Command[] = [],
-    ) {
+    ):string[] {
         const createArgsOutput = () => {
-            const result = [];
+            const result:string[] = [];
             this.argsConfig.forEach(arg => {
                 const nameDesc: string[] = [];
                 nameDesc.push(arg?.required ? "<" : "[");
@@ -212,12 +213,11 @@ export class Command<A extends any[] = [], O = {}> {
             if (!isEmpty(this.optionsConfig)) {
                 const options = Object.keys(this.optionsConfig)
                     .filter(name => !name.startsWith("-"))
-                    .filter(name => (showHidden ? true : !this.optionsConfig[name].hidden));
                 if (options.length) {
                     output.push(" options:");
                     options.forEach(key => {
                         const nameDesc: string[] = [];
-                        const option: Command.OptionConfig = this.optionsConfig[key];
+                        const option: Command.OptionConfig = this.optionsConfig[key as keyof Command.OptionsConfig];
                         nameDesc.push(option?.required ? "<" : "[");
                         nameDesc.push(option?.rest ? "..." : "");
                         nameDesc.push(key + ":");
@@ -263,7 +263,7 @@ export class Command<A extends any[] = [], O = {}> {
         let runtime: Command.RunTime<AD, A, O> | void;
         try {
             runtime = this.parse(adapter,bot,message, template);
-        } catch (e) {
+        } catch (e:any) {
             return e.message;
         }
         if (!runtime) return;
@@ -296,8 +296,8 @@ export class Command<A extends any[] = [], O = {}> {
         for (const sugar of this.sugarsConfig) {
             const matched = sugar.regexp.exec(template);
             if (!matched) continue;
-            argv.name = this.name;
-            const { args = [], options = {} } = deepClone(sugar);
+            argv.name = this.name!;
+            const { args = [], options = {} } = deepClone<Command.Sugar<any[],any>>(sugar);
             for (let i = 0; i < args.length; i++) {
                 let arg = args[i];
                 const argConfig = this.argsConfig[i];
@@ -319,7 +319,7 @@ export class Command<A extends any[] = [], O = {}> {
                 }
             }
             for (const option of Object.keys(options)) {
-                const optionConfig = this.optionsConfig[option];
+                const optionConfig:Command.OptionConfig = this.optionsConfig[option as keyof Command.OptionsConfig];
                 if (!optionConfig) continue;
                 if (
                     typeof options[option] === "string" &&
@@ -357,9 +357,10 @@ export class Command<A extends any[] = [], O = {}> {
         };
         const [name, ...matchedArr] = Command.parseParams(template);
         if (![this.name, ...this.aliasNames].includes(name)) return argv;
-        argv.name = this.name;
+        argv.name = this.name!;
         while (matchedArr.length) {
             const arg = matchedArr.shift();
+            if(!arg) break
             if (arg.startsWith("--") || arg.startsWith("-")) {
                 const name = arg.startsWith("--")
                     ? arg.slice(2)
@@ -367,7 +368,7 @@ export class Command<A extends any[] = [], O = {}> {
                         ([, option]) => option.name === arg.slice(1),
                     )?.[0];
                 if (!name) throw new Error(`option ${arg} is not defined`);
-                const option = this.optionsConfig[name];
+                const option:Command.OptionConfig = this.optionsConfig[name as keyof Command.OptionsConfig];
                 if (!option) throw new Error(`option ${name} is not defined`);
                 if (option.rest) {
                     argv.options[name] = matchedArr.map(arg =>
@@ -420,7 +421,7 @@ export class Command<A extends any[] = [], O = {}> {
         let argv = this.parseSugar(template);
         if (!argv.name) argv = this.parseArgv(template);
         if (argv.name !== this.name) {
-            if (this.aliasNames.includes(argv.name)) argv.name = this.name;
+            if (this.aliasNames.includes(argv.name)) argv.name = this.name!;
             else return;
         }
         Command.checkArgv(argv, this.argsConfig, this.optionsConfig);
@@ -437,6 +438,7 @@ export class Command<A extends any[] = [], O = {}> {
 
 type MayBePromise<T> = T | Promise<T>;
 
+// @ts-ignore
 export function defineCommand<S extends string>(
     decl: S,
     initialValue?: ArgsType<S>,
@@ -481,6 +483,7 @@ export namespace Command {
         let result = "";
         while (args.length) {
             const arg = args.shift();
+            if(!arg) return
             // 匹配自闭合标签或成对标签
             const isCloseTag = /^<\/.+?>$/.test(arg);
             const isTag = isCloseTag || /^<[^>]+>[^<]*?<\/[^>]+>$/.test(arg);
@@ -631,7 +634,7 @@ export namespace Command {
     };
     export type Domains = {
         [K in keyof Domain]?: DomainConfig<K>;
-    };
+    } & {[key:string]:never};
 
     export function checkArgv(argv: Argv, argsConfig: ArgConfig[], optionsConfig: OptionsConfig) {
         for (let i = 0; i < argsConfig.length; i++) {
@@ -646,7 +649,8 @@ export namespace Command {
                 throw new Error(`arg ${argConfig.name} should be ${argConfig.type}`);
         }
         for (const option in optionsConfig) {
-            const optionConfig = optionsConfig[option];
+            // @ts-ignore
+            const optionConfig:Command.OptionConfig = optionsConfig[option];
             if (optionConfig.required && !argv.options[option]) {
                 if (optionConfig.initialValue !== undefined)
                     argv.options[option] = optionConfig.initialValue;
@@ -656,13 +660,14 @@ export namespace Command {
             const validate =
                 optionConfig.type &&
                 domains[optionConfig.type] &&
-                domains[optionConfig.type].validate;
+                domains[optionConfig.type as keyof Command.Domain]?.validate;
             if (!validate) continue;
+            // @ts-ignore
             if (argv.options[option] && optionConfig.type && !validate(argv.options[option])) {
                 if (
                     optionConfig.rest &&
                     Array.isArray(argv.options[option]) &&
-                    (argv.options[option] as any[]).every(v => validate(argv.options[option]))
+                    (argv.options[option] as any[]).every(v => (validate as Function)(argv.options[option]))
                 )
                     continue;
                 throw new Error(`option ${option} should be ${optionConfig.type}`);
@@ -677,9 +682,9 @@ export namespace Command {
         value: Domain[T] | Domain[T][],
     ): boolean {
         if (rest && Array.isArray(value)) return value.every(v => validate(type, false, v));
-        const domainConfig = domains[type];
+        const domainConfig = domains[type as T];
         if (!domainConfig) throw new Error(`type ${type} is not defined`);
-        return domainConfig.validate(value as Domain[T]);
+        return domainConfig.validate(value as never);
     }
     export function transform<T extends Type>(source: string[], type: T): Domain[T] {
         const domainConfig = domains[type];
@@ -727,7 +732,7 @@ export namespace Command {
         validate: value => Number.isInteger(value),
     });
     registerDomain("boolean", {
-        parse: argv => [],
+        parse: argv => [] as [],
         transform: () => true,
     });
     registerDomain("date", source => new Date(source));

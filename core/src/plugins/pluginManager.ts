@@ -7,7 +7,7 @@ PM
     .action((runtime) => {
         return {
             type: "text",
-            text: [...PM.zhin.pluginList].map((plugin, index) => {
+            text: [...PM.zhin!.pluginList].map((plugin, index) => {
                 return `${index + 1} ${plugin.name}(${plugin.statusText})`
             }).join('\n')
         }
@@ -17,7 +17,7 @@ PM
     .permission('admin')
     .scope("direct")
     .action((runtime, name) => {
-        const plugin = PM.zhin.plugins.get(name)
+        const plugin = PM.zhin!.plugins.get(name)
         if (!plugin) {
             return '该插件不存在'
         }
@@ -28,7 +28,7 @@ PM.command('/禁用插件 [name:string]')
     .permission('admin')
     .scope("direct")
     .action((runtime, name) => {
-        const plugin = PM.zhin.plugins.get(name)
+        const plugin = PM.zhin!.plugins.get(name)
         if (!plugin) {
             return '插件不存在'
         }

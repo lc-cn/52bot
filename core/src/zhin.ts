@@ -31,7 +31,7 @@ export class Zhin extends EventEmitter {
                 adapter.mount(this)
                 this.logger.mark(`适配器： ${name} 已加载`)
             } catch (e) {
-                this.logger.error(e.message)
+                this.logger.error(e)
             }
         }
     }
@@ -64,7 +64,7 @@ export class Zhin extends EventEmitter {
             .reduce((result, plugin) => {
                 result.push(...plugin.middlewares)
                 return result
-            }, [])
+            }, [] as Middleware[])
     }
 
     getSupportCommands<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
@@ -81,7 +81,7 @@ export class Zhin extends EventEmitter {
     enable(plugin: Plugin): this
     enable(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
-            plugin = this.plugins.get(plugin)
+            plugin = this.plugins.get(plugin)!
             if (!plugin) throw new Error('尚未加载插件：' + plugin)
         }
         if (!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
@@ -93,7 +93,7 @@ export class Zhin extends EventEmitter {
     disable(plugin: Plugin): this
     disable(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
-            plugin = this.plugins.get(plugin)
+            plugin = this.plugins.get(plugin)!
             if (!plugin) throw new Error('尚未加载插件：' + plugin)
         }
         if (!(plugin instanceof Plugin)) throw new Error(`${plugin} 不是一个有效的插件`)
@@ -134,8 +134,8 @@ export class Zhin extends EventEmitter {
         }
     }
 
-    mount(name: string)
-    mount(plugin: Plugin)
+    mount(name: string):this
+    mount(plugin: Plugin):this
     mount(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
             plugin = loadPlugin(plugin)
@@ -165,7 +165,7 @@ export class Zhin extends EventEmitter {
     unmount(plugin: Plugin): this
     unmount(plugin: Plugin | string) {
         if (typeof plugin === 'string') {
-            plugin = this.plugins.get(plugin)
+            plugin = this.plugins.get(plugin)!
         }
         if (!(plugin instanceof Plugin)) {
             this.logger.warn(`${plugin} 不是一个有效的插件，将忽略其卸载。`)

@@ -3,18 +3,10 @@
     "target": "es2020",
     "module": "commonjs",
     "declaration": true,
-    "composite": true,
-    "incremental": true,
-    "skipLibCheck": true,
+    "noEmitOnError": true,
     "esModuleInterop": true,
-    "moduleResolution": "node",
-    "strictBindCallApply": true,
-    "paths": {
-      "@/*": ["./src/*"],
-      "@": ["./src"]
-    }
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
   },
-  "include": [
-    "src"
-  ]
 }

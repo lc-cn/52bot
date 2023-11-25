@@ -8,7 +8,7 @@ export type AdapterReceive<A extends Adapter>=A extends Adapter<infer B,infer R>
 export type AdapterSend<A extends Adapter>=A extends Adapter<infer B,infer R,infer S>?S:unknown
 export class Adapter<T=object,R=MessageBase,S=any> extends EventEmitter{
     bots:T[]=[]
-    zhin:Zhin=null
+    zhin:Zhin|null=null
     constructor(public name:string) {
         super()
     }

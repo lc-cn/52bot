@@ -5,7 +5,7 @@ export interface MessageBase{
     group_id?:string
     guild_id?:string
     channel_id?:string
-    reply?(...args:any[]):Promise<any>
+    reply(...args:any[]):Promise<any>
     sender?:MessageSender
     raw_message:string
     message_type:Command.Scope

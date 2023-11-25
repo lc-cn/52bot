@@ -15,14 +15,15 @@ export function remove<T>(list: T[], item: T) {
     if (index !== -1) list.splice(index, 1);
 }
 
-export function deepClone<T extends object>(obj: T) {
+export function deepClone<T>(obj: T):T {
     if (typeof obj !== "object") return obj
-    if (Array.isArray(obj)) return obj.map(deepClone)
+    if (Array.isArray(obj)) return obj.map(deepClone) as T
+    if(!obj) return obj
     const Constructor = obj.constructor;
 
-    let newObj: T = Constructor()
+    let newObj: T = Constructor() as T
     for (let key in obj) {
-        newObj[key] = deepClone(obj[key as any])
+        newObj[key] = deepClone(obj[key]) as any
     }
     return newObj;
 
@@ -91,7 +92,7 @@ export function loadPlugin(name: string):Plugin {
             }
             return result
         }catch (e){
-            console.log(e.message)
+            console.log(e)
         }
     }
     throw new Error(`加载插件(${name}) 失败`);
