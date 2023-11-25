@@ -67,8 +67,7 @@ export namespace Adapter{
     export function load(name:string){
         const maybePath=[
             path.join(process.cwd(),'node_modules',`@52bot`,name),// 官方适配器
-            path.join(process.cwd(),'node_modules',`52bot-`+ name),// 社区适配器
-            path.join(__dirname,'adapters',name) // 内置适配器
+            path.join(process.cwd(),'node_modules',`52bot-`+ name)// 社区适配器
         ];
         for(const adapterPath of maybePath){
             let result=null

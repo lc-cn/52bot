@@ -6,7 +6,9 @@
         "dev": "pnpm -C ../core build && 52bot -m dev"
     },
     "dependencies": {
-        "52bot": "workspace:^0.0.3",
-        "@52bot/icqq": "workspace:^0.0.1"
+        "52bot": "workspace:latest",
+        "@52bot/icqq": "workspace:latest",
+        "@52bot/qq": "workspace:latest",
+        "@52bot/plugin-guild-manager": "workspace:latest"
     }
 }

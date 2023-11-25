@@ -44,9 +44,7 @@ const messageHandler=(bot:Client,message:QQMessageEvent)=>{
   message.raw_message=sendableToString(message.message)
   const oldReply=message.reply
   message.reply=function(message:Sendable,quote?:boolean){
-    console.log(message)
     message=formatSendable(message)
-    console.log(message)
     return oldReply.call(this,message,quote)
   }
   icqq.zhin!.emit('message',icqq,bot,message)

@@ -45,7 +45,6 @@ importers:
       dtsc: ^2.3.0
       jiti: ^1.21.0
       log4js: ^6.9.1
-      qq-group-bot: latest
       tsconfig-paths: ^4.2.0
       ws: ^8.14.0
       yaml: ^2.3.4
@@ -55,7 +54,6 @@ importers:
       dotenv: 16.3.1
       jiti: 1.21.0
       log4js: 6.9.1
-      qq-group-bot: 0.0.7-7
       tsconfig-paths: 4.2.0
       ws: 8.14.2
       yaml: 2.3.4
@@ -71,13 +69,33 @@ importers:
       52bot: link:../../../core
       icqq: 0.6.3
 
+  packages/adapters/qq:
+    specifiers:
+      52bot: workspace:^0.0.3
+      qq-group-bot: latest
+    dependencies:
+      52bot: link:../../../core
+      qq-group-bot: 0.0.7-7
+
+  packages/plugins/guildManager:
+    specifiers:
+      52bot: workspace:^0.0.3
+      '@52bot/qq': workspace:^0.0.1
+    dependencies:
+      52bot: link:../../../core
+      '@52bot/qq': link:../../adapters/qq
+
   test:
     specifiers:
       52bot: workspace:^0.0.3
-      '@52bot/icqq': workspace:^0.0.1
+      '@52bot/icqq': workspace:^0.0.2
+      '@52bot/plugin-guild-manager': workspace:^0.0.1
+      '@52bot/qq': workspace:^0.0.1
     dependencies:
       52bot: link:../core
       '@52bot/icqq': link:../packages/adapters/icqq
+      '@52bot/plugin-guild-manager': link:../packages/plugins/guildManager
+      '@52bot/qq': link:../packages/adapters/qq
 
 packages:
 
