@@ -1,1 +1,1 @@
-export const ZhinKey=Symbol('ZhinKey')
+export const AppKey=Symbol('AppKey')

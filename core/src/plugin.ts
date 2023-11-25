@@ -2,8 +2,8 @@ import { ArgsType, Command, defineCommand } from "@/command";
 import { EventEmitter } from "events";
 import { Middleware } from "@/middleware";
 import {getCallerStack, remove} from "@/utils";
-import {Zhin} from "@/zhin";
-import {ZhinKey} from "@/constans";
+import {App} from "@/app";
+import {AppKey} from "@/constans";
 import {Dict} from "@/types";
 export class Plugin extends EventEmitter {
     disposes: Function[] = []
@@ -14,9 +14,9 @@ export class Plugin extends EventEmitter {
     services:Map<string|symbol,any>=new Map<string|symbol,any>()
     commands: Map<string, Command> = new Map<string, Command>()
     middlewares: Middleware[] = [];
-    [ZhinKey]: Zhin|null=null
-    get zhin(){
-        return this[ZhinKey]
+    [AppKey]: App|null=null
+    get app(){
+        return this[AppKey]
     }
     get statusText(){
         return Plugin.StatusText[this.status]
@@ -34,14 +34,14 @@ export class Plugin extends EventEmitter {
             get(target:Plugin,key){
                 if(Reflect.ownKeys(target).includes(key)) return Reflect.get(target,key)
                 if(!Reflect.get(target,'bot')) return Reflect.get(target,key)
-                return Reflect.get(target?.zhin!.services,key)
+                return Reflect.get(target?.app!.services,key)
             }
         })
     }
-    service<T extends keyof Zhin.Services>(name:T): Zhin.Services[T]
-    service<T extends keyof Zhin.Services>(name:T,service:Zhin.Services[T]): this
-    service<T extends keyof Zhin.Services>(name:T,service?:Zhin.Services[T]){
-        if(!service) return this.zhin!.services[name]
+    service<T extends keyof App.Services>(name:T): App.Services[T]
+    service<T extends keyof App.Services>(name:T, service:App.Services[T]): this
+    service<T extends keyof App.Services>(name:T, service?:App.Services[T]){
+        if(!service) return this.app!.services[name]
         this.services.set(name,service)
         return this
     }
@@ -59,9 +59,9 @@ export class Plugin extends EventEmitter {
         this.disposes.push(() => remove(this.middlewares, middleware))
         return this
     }
-    using(...args:[...(keyof Zhin.Services)[],(plugin:this)=>void]) {
+    using(...args:[...(keyof App.Services)[],(plugin:this)=>void]) {
         const callback=args.pop()
-        const services=[...args] as (keyof Zhin.Services)[]
+        const services=[...args] as (keyof App.Services)[]
         if(typeof callback!=='function') throw new Error('callback 必须是函数')
         if(!services.length){
             callback(this)
@@ -73,10 +73,10 @@ export class Plugin extends EventEmitter {
             })
             if(servicesHasReady){
                 callback(this)
-                this.zhin!.off('service-registered',installFn)
+                this.app!.off('service-registered',installFn)
             }
         }
-        this.zhin!.on('service-registered',installFn)
+        this.app!.on('service-registered',installFn)
         return this
     }
     // @ts-ignore
@@ -145,38 +145,38 @@ export class Plugin extends EventEmitter {
         lifeCycles.push(callback)
     }
 }
-export interface Plugin extends Zhin.Services{
-    on<T extends keyof Zhin.EventMap>(event: T, callback: Zhin.EventMap[T]): this
+export interface Plugin extends App.Services{
+    on<T extends keyof App.EventMap>(event: T, callback: App.EventMap[T]): this
 
-    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback: (...args: any[]) => void): this
+    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback: (...args: any[]) => void): this
 
-    once<T extends keyof Zhin.EventMap>(event: T, callback: Zhin.EventMap[T]): this
+    once<T extends keyof App.EventMap>(event: T, callback: App.EventMap[T]): this
 
-    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback: (...args: any[]) => void): this
+    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback: (...args: any[]) => void): this
 
-    off<T extends keyof Zhin.EventMap>(event: T, callback?: Zhin.EventMap[T]): this
+    off<T extends keyof App.EventMap>(event: T, callback?: App.EventMap[T]): this
 
-    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback?: (...args: any[]) => void): this
+    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback?: (...args: any[]) => void): this
 
-    emit<T extends keyof Zhin.EventMap>(event: T, ...args: Parameters<Zhin.EventMap[T]>): boolean
+    emit<T extends keyof App.EventMap>(event: T, ...args: Parameters<App.EventMap[T]>): boolean
 
-    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, ...args: any[]): boolean
+    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, ...args: any[]): boolean
 
-    addListener<T extends keyof Zhin.EventMap>(event: T, callback: Zhin.EventMap[T]): this
+    addListener<T extends keyof App.EventMap>(event: T, callback: App.EventMap[T]): this
 
-    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback: (...args: any[]) => void): this
+    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback: (...args: any[]) => void): this
 
-    addListenerOnce<T extends keyof Zhin.EventMap>(event: T, callback: Zhin.EventMap[T]): this
+    addListenerOnce<T extends keyof App.EventMap>(event: T, callback: App.EventMap[T]): this
 
-    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback: (...args: any[]) => void): this
+    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback: (...args: any[]) => void): this
 
-    removeListener<T extends keyof Zhin.EventMap>(event: T, callback?: Zhin.EventMap[T]): this
+    removeListener<T extends keyof App.EventMap>(event: T, callback?: App.EventMap[T]): this
 
-    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback?: (...args: any[]) => void): this
+    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback?: (...args: any[]) => void): this
 
-    removeAllListeners<T extends keyof Zhin.EventMap>(event: T): this
+    removeAllListeners<T extends keyof App.EventMap>(event: T): this
 
-    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>): this
+    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>): this
 }
 export namespace Plugin {
     export interface Config {

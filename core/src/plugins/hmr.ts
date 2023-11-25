@@ -1,5 +1,5 @@
 import {watch} from 'chokidar'
-import { Plugin, Zhin } from '@';
+import { Plugin, App } from '@';
 import * as path from "path";
 import * as fs from "fs";
 
@@ -17,50 +17,50 @@ const watcher = watch(watchDirs.filter(p => {
     return fs.existsSync(p)
 }))
 const reloadProject = () => {
-    HMR.zhin!.logger.info(`\`.${process.env.mode}.env\` changed restarting ...`)
+    HMR.app!.logger.info(`\`.${process.env.mode}.env\` changed restarting ...`)
     return process.exit(51)
 }
 const reloadAdapter = (filePath: string) => {
     const adapterName = filePath
         .replace(path.dirname(filePath) + '/', '')
         .replace(/\.(t|j|cj)s/, '')
-    let adapter = HMR.zhin!.adapters.get(adapterName)
+    let adapter = HMR.app!.adapters.get(adapterName)
     if (!adapter) return
     const oldCache = require.cache[filePath]
     adapter.unmount()
-    HMR.zhin!.adapters.delete(adapterName)
+    HMR.app!.adapters.delete(adapterName)
     delete require.cache[filePath]
     try {
-        HMR.zhin!.initAdapter([adapterName])
+        HMR.app!.initAdapter([adapterName])
     } catch (e) {
         require.cache[filePath] = oldCache
-        HMR.zhin!.initAdapter([adapterName])
+        HMR.app!.initAdapter([adapterName])
     }
-    adapter = HMR.zhin!.adapters.get(adapterName)
+    adapter = HMR.app!.adapters.get(adapterName)
     if (!adapter) return
     adapter.emit('start')
 }
 const reloadPlugin = (filePath: string) => {
-    const zhin:Zhin = HMR.zhin!
-    const plugin = HMR.zhin!.pluginList.find(p => p.filePath === filePath)
+    const app:App = HMR.app!
+    const plugin = HMR.app!.pluginList.find(p => p.filePath === filePath)
     if(!plugin) return
-    zhin.logger.debug(`插件：${plugin.name} 产生变更，即将更新`)
+    app.logger.debug(`插件：${plugin.name} 产生变更，即将更新`)
     if (plugin === HMR) watcher.close()
     const oldCache = require.cache[filePath]
-    zhin.unmount(plugin)
+    app.unmount(plugin)
     delete require.cache[filePath]
     try {
-        zhin.mount(filePath)
+        app.mount(filePath)
     } catch (e) {
         require.cache[filePath] = oldCache
-        zhin.mount(filePath)
+        app.mount(filePath)
     }
 }
 const changeListener = (filePath: string) => {
     if (filePath.endsWith('.env')) {
         reloadProject()
     }
-    const pluginFiles = HMR.zhin!.pluginList.map(p => p.filePath)
+    const pluginFiles = HMR.app!.pluginList.map(p => p.filePath)
     if (watchDirs.some(dir => filePath.startsWith(dir)) && pluginFiles.includes(filePath)) {
         reloadPlugin(filePath)
     }

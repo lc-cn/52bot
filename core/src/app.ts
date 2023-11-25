@@ -4,17 +4,17 @@ import {Middleware} from "@/middleware";
 import {Plugin, PluginMap} from "@/plugin";
 import {Dict, LogLevel} from "@/types";
 import {loadPlugin} from "@/utils";
-import {ZhinKey} from "@/constans";
+import {AppKey} from "@/constans";
 import path from "path";
 import fs from "fs";
 import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
 
-export class Zhin extends EventEmitter {
-    logger: Logger = getLogger(`[Zhin]`)
+export class App extends EventEmitter {
+    logger: Logger = getLogger(`[52bot]`)
     adapters: Map<string, Adapter> = new Map<string, Adapter>()
     plugins: PluginMap = new PluginMap()
 
-    constructor(public config: Zhin.Config) {
+    constructor(public config: App.Config) {
         super();
         this.logger.level = config.logLevel
         this.initAdapter(config.adapters)
@@ -146,7 +146,7 @@ export class Zhin extends EventEmitter {
         }
         this.emit('plugin-beforeMount', plugin)
         this.plugins.set(plugin.name, plugin)
-        plugin[ZhinKey] = this
+        plugin[AppKey] = this
         for (const [name, service] of plugin.services) {
             if (!this.services[name]) {
                 this.emit('service-beforeRegister', name, service)
@@ -177,7 +177,7 @@ export class Zhin extends EventEmitter {
         }
         this.emit('plugin-beforeUnmount', plugin)
         this.plugins.delete(plugin.name)
-        plugin[ZhinKey] = null
+        plugin[AppKey] = null
         for (const [name, service] of plugin.services) {
             if (this.services[name] && this.services[name] === service) {
                 this.emit('service-beforeDestroy', name, service)
@@ -236,42 +236,42 @@ export class Zhin extends EventEmitter {
     }
 }
 
-export interface Zhin {
-    on<T extends keyof Zhin.EventMap>(event: T, listener: Zhin.EventMap[T]): this
+export interface App {
+    on<T extends keyof App.EventMap>(event: T, listener: App.EventMap[T]): this
 
-    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, listener: (...args: any[]) => any): this
+    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, listener: (...args: any[]) => any): this
 
-    off<T extends keyof Zhin.EventMap>(event: T, callback?: Zhin.EventMap[T]): this
+    off<T extends keyof App.EventMap>(event: T, callback?: App.EventMap[T]): this
 
-    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback?: (...args: any[]) => void): this
+    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback?: (...args: any[]) => void): this
 
-    once<T extends keyof Zhin.EventMap>(event: T, listener: Zhin.EventMap[T]): this
+    once<T extends keyof App.EventMap>(event: T, listener: App.EventMap[T]): this
 
-    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, listener: (...args: any[]) => any): this
+    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, listener: (...args: any[]) => any): this
 
-    emit<T extends keyof Zhin.EventMap>(event: T, ...args: Parameters<Zhin.EventMap[T]>): boolean
+    emit<T extends keyof App.EventMap>(event: T, ...args: Parameters<App.EventMap[T]>): boolean
 
-    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, ...args: any[]): boolean
+    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, ...args: any[]): boolean
 
-    addListener<T extends keyof Zhin.EventMap>(event: T, listener: Zhin.EventMap[T]): this
+    addListener<T extends keyof App.EventMap>(event: T, listener: App.EventMap[T]): this
 
-    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, listener: (...args: any[]) => any): this
+    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, listener: (...args: any[]) => any): this
 
-    addListenerOnce<T extends keyof Zhin.EventMap>(event: T, callback: Zhin.EventMap[T]): this
+    addListenerOnce<T extends keyof App.EventMap>(event: T, callback: App.EventMap[T]): this
 
-    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback: (...args: any[]) => void): this
+    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback: (...args: any[]) => void): this
 
-    removeListener<T extends keyof Zhin.EventMap>(event: T, callback?: Zhin.EventMap[T]): this
+    removeListener<T extends keyof App.EventMap>(event: T, callback?: App.EventMap[T]): this
 
-    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>, callback?: (...args: any[]) => void): this
+    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, callback?: (...args: any[]) => void): this
 
-    removeAllListeners<T extends keyof Zhin.EventMap>(event: T): this
+    removeAllListeners<T extends keyof App.EventMap>(event: T): this
 
-    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Zhin.EventMap>): this
+    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>): this
 
 }
 
-export namespace Zhin {
+export namespace App {
     export interface Config {
         adapters: string[]
         logLevel: LogLevel
@@ -291,10 +291,10 @@ export namespace Zhin {
         'plugin-unmounted'(plugin: Plugin): void
 
         'message': <AD extends Adapter>(adapter: AD, bot: AdapterBot<AD>, message: AdapterReceive<AD>) => void
-        'service-beforeRegister': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
-        'service-registered': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
-        'service-beforeDestroy': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
-        'service-destroyed': <T extends keyof Zhin.Services>(name: T, service: Zhin.Services[T]) => void
+        'service-beforeRegister': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
+        'service-registered': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
+        'service-beforeDestroy': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
+        'service-destroyed': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
     }
 
     export interface Services {

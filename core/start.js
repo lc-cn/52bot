@@ -2,7 +2,7 @@ const path = require("path");
 const dotEnv=require('dotenv')
 let { mode = "", entry } = process.env;
 entry = path.resolve(__dirname, entry || "lib");
-const {Zhin} = require(entry)
+const {App} = require(entry)
 const envConfig=dotEnv.config({
 	path: path.join(process.cwd(),`.${mode}.env`)
 })
@@ -14,14 +14,14 @@ if(envConfig.parsed){
 	const builtPlugins=config.builtPlugins?.split(',')||[]
 	const modulePlugins = config.modulePlugins?.split(',')||[]
 	const pluginDir=config.pluginDirs?.split(',')||[]
-	const zhin=new Zhin({
+	const app=new App({
 		...config,
 		adapters
 	})
-	zhin.loadFromBuilt(builtPlugins)
-	zhin.loadFromModule(modulePlugins)
-	zhin.loadFromDir(...pluginDir)
-	zhin.start()
+	app.loadFromBuilt(builtPlugins)
+	app.loadFromModule(modulePlugins)
+	app.loadFromDir(...pluginDir)
+	app.start()
 }else{
 	throw envConfig.error||new Error(`解析文件: .${mode}.env 失败`)
 }

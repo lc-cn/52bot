@@ -2,7 +2,7 @@ import {Plugin} from "@/plugin";
 
 const CP = new Plugin('指令解析器');
 CP.middleware(async (adapter, bot, message, next) => {
-    const commands = CP.zhin!.getSupportCommands(adapter, bot, message);
+    const commands = CP.app!.getSupportCommands(adapter, bot, message);
     for (const command of commands) {
         const result = await command.execute(adapter, bot, message, message.raw_message);
         if (result) return message.reply(result)
@@ -16,7 +16,7 @@ CP.command('/帮助 [name:string]')
     .sugar(/^(\S+)帮助$/, {args: ['$1']})
     .option("-H [showHidden:boolean] 显示隐藏指令")
     .action(({options, adapter, bot, message}, target) => {
-        const supportCommands = CP.zhin!.getSupportCommands(adapter, bot, message);
+        const supportCommands = CP.app!.getSupportCommands(adapter, bot, message);
         if (!target) {
             const commands = supportCommands.filter(cmd => {
                 if (options.showHidden) return cmd.parent === null;
@@ -43,7 +43,7 @@ CP.command('/帮助 [name:string]')
 
         return {
             type: 'text',
-            text: CP.zhin!
+            text: CP.app!
                 .findCommand(target)
                 ?.help({...options, dep: 1}, supportCommands)
                 .concat("输入 “/帮助 [command name]” 展示指定指令帮助")

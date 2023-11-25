@@ -23,6 +23,10 @@
   ],
   "author": "凉菜",
   "license": "MIT",
+  "repository": {
+    "url": "https://github.com/lc-cn/52bot",
+    "directory": "core"
+  },
   "dependencies": {
     "axios": "^1.6.1",
     "qq-group-bot": "latest",

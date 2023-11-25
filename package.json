@@ -2,14 +2,18 @@
     "name": "52bot-workspace",
     "version": "0.0.1",
     "description": "qq机器人开发框架",
+    "repository": {
+        "url": "https://github.com/lc-cn/52bot"
+    },
     "scripts": {
+        "start": "pnpm start -C test start",
+        "dev": "pnpm -C test dev",
         "prepare": "husky install",
         "lint": "eslint packages --ext .ts",
         "format": "prettier packages --write",
         "build": "node ./scripts/build.js",
         "clean": "node ./scripts/clean.js",
-        "start": "pnpm start -C test start",
-        "dev": "pnpm -C test dev"
+        "pub": "node ./scripts/publish.js"
     },
     "engines": {
         "node": ">=14",
@@ -32,8 +36,10 @@
         "eslint-config-prettier": "^9.0.0",
         "eslint-plugin-prettier": "^5.0.1",
         "husky": "^8.0.3",
+        "latest-version": "^5.0.0",
         "prettier": "^3.1.0",
         "rimraf": "^5.0.5",
+        "semver": "^7.5.4",
         "tsc-alias": "^1.8.8",
         "typescript": "^5.2.2"
     }

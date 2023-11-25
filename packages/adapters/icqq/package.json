@@ -1,8 +1,18 @@
 {
-    "name": "52bot-icqq",
+    "name": "@52bot/icqq",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
     "version": "0.0.1",
     "scripts": {
         "build": "tsc"
+    },
+    "files": [
+        "lib"
+    ],
+    "author": "凉菜",
+    "repository": {
+        "url": "https://github.com/lc-cn/52bot",
+        "directory": "packages/adapters/icqq"
     },
     "dependencies": {
         "52bot": "workspace:^0.0.3",

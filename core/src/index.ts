@@ -6,7 +6,7 @@ export * from './utils'
 export * from './command'
 export * from './middleware'
 export * from './plugin'
-export * from './zhin'
+export * from './app'
 
 interface Message {
     type: "start" | "queue";

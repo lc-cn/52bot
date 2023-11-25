@@ -7,6 +7,6 @@
     },
     "dependencies": {
         "52bot": "workspace:^0.0.3",
-        "52bot-icqq": "workspace:^0.0.1"
+        "@52bot/icqq": "workspace:^0.0.1"
     }
 }

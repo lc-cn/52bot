@@ -1,5 +1,4 @@
-import {Zhin} from "@/zhin";
-import {ZhinKey} from "@/constans";
+import {App} from "@/app";
 import {EventEmitter} from "events";
 import {MessageBase} from "@/message";
 import path from "path";
@@ -8,11 +7,11 @@ export type AdapterReceive<A extends Adapter>=A extends Adapter<infer B,infer R>
 export type AdapterSend<A extends Adapter>=A extends Adapter<infer B,infer R,infer S>?S:unknown
 export class Adapter<T=object,R=MessageBase,S=any> extends EventEmitter{
     bots:T[]=[]
-    zhin:Zhin|null=null
+    zhin:App|null=null
     constructor(public name:string) {
         super()
     }
-    mount(zhin:Zhin){
+    mount(zhin:App){
         this.emit('before-mount')
         this.zhin=zhin
         this.emit('mounted')
@@ -67,7 +66,7 @@ export namespace Adapter{
     }
     export function load(name:string){
         const maybePath=[
-            path.join(process.cwd(),'node_modules',`@52bot`,'adapters-'+name),// 官方适配器
+            path.join(process.cwd(),'node_modules',`@52bot`,name),// 官方适配器
             path.join(process.cwd(),'node_modules',`52bot-`+ name),// 社区适配器
             path.join(__dirname,'adapters',name) // 内置适配器
         ];
@@ -75,7 +74,9 @@ export namespace Adapter{
             let result=null
             try{
                 result=require(adapterPath)
-            } catch {}
+            } catch (e){
+                console.log(adapterPath)
+            }
             if(!result) continue
             result=result.default||result
             if(!(result instanceof Adapter)) throw new Error(`${adapterPath} is not a adapter`)
