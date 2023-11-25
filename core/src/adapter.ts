@@ -74,9 +74,7 @@ export namespace Adapter{
             let result=null
             try{
                 result=require(adapterPath)
-            } catch (e){
-                console.log(adapterPath)
-            }
+            } catch {}
             if(!result) continue
             result=result.default||result
             if(!(result instanceof Adapter)) throw new Error(`${adapterPath} is not a adapter`)

@@ -9,6 +9,7 @@ import {
   Config
 } from "icqq";
 import * as process from 'process';
+import { formatSendable, sendableToString } from '@/utils';
 type QQMessageEvent=PrivateMessageEvent|GroupMessageEvent|GuildMessageEvent|DiscussMessageEvent
 type ICQQAdapterConfig=QQConfig[]
 export type ICQQAdapter=typeof icqq
@@ -40,6 +41,14 @@ const initBot=()=>{
   icqq.on('stop',stopBots);
 }
 const messageHandler=(bot:Client,message:QQMessageEvent)=>{
+  message.raw_message=sendableToString(message.message)
+  const oldReply=message.reply
+  message.reply=function(message:Sendable,quote?:boolean){
+    console.log(message)
+    message=formatSendable(message)
+    console.log(message)
+    return oldReply.call(this,message,quote)
+  }
   icqq.zhin!.emit('message',icqq,bot,message)
 }
 const botLogin=async (bot:Client)=>{

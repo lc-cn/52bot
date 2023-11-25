@@ -2,9 +2,9 @@
     "name": "@52bot/icqq",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc && tsc-alias"
     },
     "files": [
         "lib"
