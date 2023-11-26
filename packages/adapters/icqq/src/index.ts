@@ -13,7 +13,7 @@ import { formatSendable, sendableToString } from '@/utils';
 type QQMessageEvent=PrivateMessageEvent|GroupMessageEvent|GuildMessageEvent|DiscussMessageEvent
 type ICQQAdapterConfig=QQConfig[]
 export type ICQQAdapter=typeof icqq
-const icqq=new Adapter<Client,QQMessageEvent,Sendable>('icqq')
+const icqq=new Adapter<Client,QQMessageEvent>('icqq')
 type QQConfig={
   uin:number
   password?:string

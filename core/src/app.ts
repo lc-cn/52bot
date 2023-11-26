@@ -3,7 +3,7 @@ import {Logger, getLogger} from "log4js";
 import {Middleware} from "@/middleware";
 import {Plugin, PluginMap} from "@/plugin";
 import {Dict, LogLevel} from "@/types";
-import {loadPlugin} from "@/utils";
+import { loadPlugin, remove } from '@/utils';
 import {AppKey} from "@/constans";
 import path from "path";
 import fs from "fs";
@@ -12,6 +12,7 @@ import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
 export class App extends EventEmitter {
     logger: Logger = getLogger(`[52bot]`)
     adapters: Map<string, Adapter> = new Map<string, Adapter>()
+    middlewares:Middleware[]=[]
     plugins: PluginMap = new PluginMap()
 
     constructor(public config: App.Config) {
@@ -35,7 +36,12 @@ export class App extends EventEmitter {
             }
         }
     }
-
+    middleware<T extends Adapter>(middleware:Middleware<T>){
+        this.middlewares.push(middleware as Middleware)
+        return ()=>{
+            remove(this.middlewares,middleware)
+        }
+    }
     get pluginList() {
         return [...this.plugins.values()].filter(p => p.status === 'enabled')
     }
@@ -64,7 +70,7 @@ export class App extends EventEmitter {
             .reduce((result, plugin) => {
                 result.push(...plugin.middlewares)
                 return result
-            }, [] as Middleware[])
+            }, [...this.middlewares])
     }
 
     getSupportCommands<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {

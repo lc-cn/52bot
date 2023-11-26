@@ -4,8 +4,7 @@ import {MessageBase} from "@/message";
 import path from "path";
 export type AdapterBot<A extends Adapter>=A extends Adapter<infer B>?B:unknown
 export type AdapterReceive<A extends Adapter>=A extends Adapter<infer B,infer R>?R:unknown
-export type AdapterSend<A extends Adapter>=A extends Adapter<infer B,infer R,infer S>?S:unknown
-export class Adapter<T=object,R=MessageBase,S=any> extends EventEmitter{
+export class Adapter<T=object,R=MessageBase> extends EventEmitter{
     bots:T[]=[]
     zhin:App|null=null
     constructor(public name:string) {

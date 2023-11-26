@@ -4,7 +4,7 @@ import {QQAdapter} from "@52bot/qq";
 const guildManager = new Plugin('频道管理', {
   adapters: ['qq']
 });
-guildManager.command('/置顶 [message_id:string]')
+guildManager.command('置顶 [message_id:string]')
   .permission('admin')
   .scope('guild')
   .action<QQAdapter>(async ({message}, message_id) => {
@@ -13,7 +13,7 @@ guildManager.command('/置顶 [message_id:string]')
     const result = await message.bot.pinChannelMessage(message.channel_id as string, message_id)
     return result?.message_ids?.includes(message_id) ? '已置顶' : '置顶失败'
   })
-guildManager.command('/取消置顶 [message_id:string]')
+guildManager.command('取消置顶 [message_id:string]')
   .permission('admin')
   .scope('guild')
   .action<QQAdapter>(async ({message}, message_id) => {
@@ -22,7 +22,7 @@ guildManager.command('/取消置顶 [message_id:string]')
     const result = await message.bot.unPinChannelMessage(message.channel_id as string, message_id)
     return result?.message_ids?.includes(message_id) ? '已取消置顶' : '取消置顶失败'
   })
-guildManager.command('/设为公告 [message_id:string]')
+guildManager.command('设为公告 [message_id:string]')
   .permission('admin')
   .scope('guild')
   .action<QQAdapter>(async ({message}, message_id) => {
@@ -31,7 +31,7 @@ guildManager.command('/设为公告 [message_id:string]')
     const result = await message.bot.setChannelAnnounce(message.guild_id as string, message.channel_id as string, message_id)
     return result?.message_id === message_id ? '已设为公告' : '设为公告失败'
   })
-guildManager.command('/禁言 [user_id:user_id]')
+guildManager.command('禁言 [user_id:user_id]')
   .permission('admin')
   .scope('guild')
   .option('-t [time:number] 禁言时长,单位秒', 10)

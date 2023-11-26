@@ -1,6 +1,8 @@
 import {deepClone, findLastIndex, isEmpty, trimQuote} from "@/utils";
 import {Dict} from "@/types";
-import {Adapter, AdapterBot, AdapterReceive, AdapterSend} from "@/adapter";
+import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
+import { Segment } from '@/message';
+import { Prompt } from '@/prompt';
 
 type Argv = {
     name: string;
@@ -207,14 +209,14 @@ export class Command<A extends any[] = [], O = {}> {
         };
         const output: string[] = [`${this.name} ${createArgsOutput()} ${this.config.desc || ""}`];
         if (!simple) {
-            if (this.aliasNames.length) output.push(` alias:${this.aliasNames.join(",")}`);
+            if (this.aliasNames.length) output.push(` 别名:${this.aliasNames.join(",")}`);
             if (this.sugarsConfig.length)
-                output.push(` sugars:${this.sugarsConfig.map(sugar => String(sugar.regexp))}`);
+                output.push(` 语法糖:${this.sugarsConfig.map(sugar => String(sugar.regexp))}`);
             if (!isEmpty(this.optionsConfig)) {
                 const options = Object.keys(this.optionsConfig)
                     .filter(name => !name.startsWith("-"))
                 if (options.length) {
-                    output.push(" options:");
+                    output.push(" 可选项:");
                     options.forEach(key => {
                         const nameDesc: string[] = [];
                         const option: Command.OptionConfig = this.optionsConfig[key as keyof Command.OptionsConfig];
@@ -229,7 +231,7 @@ export class Command<A extends any[] = [], O = {}> {
             }
         }
         if (this.children.length && dep !== current) {
-            output.push(" children:");
+            output.push(" 子指令:");
             return output.concat(
                 ...this.children
                     .filter(cmd => showHidden || (!cmd.config.hidden && allowList.includes(cmd)))
@@ -259,7 +261,7 @@ export class Command<A extends any[] = [], O = {}> {
         bot:AdapterBot<AD>,
         message: M,
         template = message.raw_message,
-    ): Promise<AdapterSend<AD> | void> {
+    ): Promise<Segment | void> {
         let runtime: Command.RunTime<AD, A, O> | void;
         try {
             runtime = this.parse(adapter,bot,message, template);
@@ -272,14 +274,23 @@ export class Command<A extends any[] = [], O = {}> {
                 runtime as Command.RunTime<AD, A, O>,
                 ...(runtime as Command.RunTime<AD, A, O>).args,
             ]);
-            if(!result) return
+            if(typeof result==='boolean'){
+                // 验证器返回false时，退出
+                if(!result) return
+            }else{
+                // 验证器返回内容时，退出并上报验证结果
+                if(result) return result
+            }
         }
         for (const callback of runtime.command.callbacks) {
             const result = await callback.apply(runtime.command, [
                 runtime as Command.RunTime<AD, A, O>,
                 ...(runtime as Command.RunTime<AD, A, O>).args,
             ]);
-            if (result) return result;
+            if (result){
+                if(typeof result==='boolean') return
+                return result
+            }
         }
     }
 
@@ -430,6 +441,7 @@ export class Command<A extends any[] = [], O = {}> {
             options: argv.options as O,
             adapter,
             bot,
+            prompt:new Prompt(adapter,bot,message),
             command: this,
             message,
         };
@@ -555,6 +567,7 @@ export namespace Command {
         adapter:AD
         options: O;
         bot:AdapterBot<AD>;
+        prompt:Prompt<AD>
         message: AdapterReceive<AD>;
         command: Command<A, O>;
     };
@@ -609,7 +622,7 @@ export namespace Command {
     export type CallBack<AD extends Adapter=Adapter, A extends any[] = [], O = {}> = (
         runtime: RunTime<AD, A, O>,
         ...args: A
-    ) => MayBePromise<AdapterSend<AD> | void>;
+    ) => MayBePromise<Segment | boolean | void>;
 
     export interface Domain {
         text: string;

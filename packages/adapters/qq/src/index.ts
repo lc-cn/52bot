@@ -10,7 +10,7 @@ import {
 type QQMessageEvent=PrivateMessageEvent|GroupMessageEvent|GuildMessageEvent|DirectMessageEvent
 type QQAdapterConfig=QQConfig[]
 export type QQAdapter=typeof qq
-const qq=new Adapter<Bot,QQMessageEvent,Sendable>('qq')
+const qq=new Adapter<Bot,QQMessageEvent>('qq')
 type QQConfig={
   appid:string
   token:string
@@ -60,6 +60,10 @@ const initBot=()=>{
   qq.on('stop',stopBots);
 }
 const messageHandler=(bot:Bot,message:QQMessageEvent)=>{
+  message.raw_message=message.raw_message.trim()
+  const commands=qq.zhin!.getSupportCommands(qq,bot,message)
+  const matchReg=new RegExp(`^/(${commands.map(c=>c.name).join('|')})`)
+  if(message.raw_message.match(matchReg)) message.raw_message=message.raw_message.slice(1)
   qq.zhin!.emit('message',qq,bot,message)
 }
 const startBots=()=>{

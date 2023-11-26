@@ -1,7 +1,8 @@
-import {Plugin} from "@";
+import { Plugin } from '@';
 
 const echo = new Plugin('echo');
-echo.command('/发送 <msg:any>')
-    .alias('发送', 'echo')
-    .action((_, msg) => msg)
-export default echo
+echo.command('发送 <msg:any>')
+  .desc('输出指定信息')
+  .alias('echo')
+  .action((_, msg) => msg);
+export default echo;
