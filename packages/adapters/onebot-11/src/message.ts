@@ -8,7 +8,10 @@ export class MessageV11 {
   message_type: 'group' | 'private' = 'private';
   message: string | (MessageV11.Segment | string)[] = [];
 
-  constructor(public bot: OneBotV11, event: Dict) {
+  constructor(
+    public bot: OneBotV11,
+    event: Dict,
+  ) {
     const { raw_message: _, message } = event;
     Object.assign(this, {
       raw_message: MessageV11.formatToString(message),
@@ -47,23 +50,26 @@ export class GroupMessageEventV11 extends MessageV11 implements MessageV11.Messa
 
 export namespace MessageV11 {
   export type Segment = {
-    type: string
-    data: Dict
-  }
+    type: string;
+    data: Dict;
+  };
   export type Ret = {
-    message_id: number
-  }
-  export type Sendable = string | Segment | (string | Segment)[]
+    message_id: number;
+  };
+  export type Sendable = string | Segment | (string | Segment)[];
   export type MessageEventV11 = {
-    reply(message: Sendable): Promise<Ret>
-  }
+    reply(message: Sendable): Promise<Ret>;
+  };
 
   export function segmentsToCqCode(segments: Segment[]) {
     let result = '';
     for (const item of segments) {
       const { type, data } = item;
       if (type === 'text') result += data.text || '';
-      else result += `[CQ:${type},${Object.entries(data).map(([key, value]) => `${key}=${value}`).join(',')}]`;
+      else
+        result += `[CQ:${type},${Object.entries(data)
+          .map(([key, value]) => `${key}=${value}`)
+          .join(',')}]`;
     }
     return result;
   }
@@ -79,10 +85,12 @@ export namespace MessageV11 {
       if (prevText) result.push({ type: 'text', data: { text: prevText } });
       template = template.slice(index + match.length);
       const [type, ...attrs] = match.slice(1, -1).split(',');
-      const data = Object.fromEntries(attrs.map(attrStr => {
-        const [key, ...valueArr] = attrStr.split('=');
-        return [key, valueArr.join('=')];
-      }));
+      const data = Object.fromEntries(
+        attrs.map(attrStr => {
+          const [key, ...valueArr] = attrStr.split('=');
+          return [key, JSON.parse(valueArr.join('=').replace(/_🤤_🤖_/g, ','))];
+        }),
+      );
       result.push({ type, data });
     }
     if (template.length) result.push({ type: 'text', data: { text: template } });
@@ -101,10 +109,12 @@ export namespace MessageV11 {
       template = template.slice(index + match.length);
       const [typeWithPrefix, ...attrs] = match.slice(1, -1).split(',');
       const type = typeWithPrefix.replace('CQ:', '');
-      const data = Object.fromEntries(attrs.map(attrStr => {
-        const [key, ...valueArr] = attrStr.split('=');
-        return [key, valueArr.join('=')];
-      }));
+      const data = Object.fromEntries(
+        attrs.map(attrStr => {
+          const [key, ...valueArr] = attrStr.split('=');
+          return [key, valueArr.join('=')];
+        }),
+      );
       result.push({
         type,
         data,
@@ -122,7 +132,7 @@ export namespace MessageV11 {
   }
 
   export function formatSegments(message: Sendable): Segment[] {
-    let result: Segment[] = [];
+    const result: Segment[] = [];
     if (!Array.isArray(message)) message = [message];
     for (const item of message) {
       if (typeof item === 'string') result.push(...parseSegmentsFromTemplate(item));
@@ -137,7 +147,10 @@ export namespace MessageV11 {
     for (const item of message) {
       const { type, data } = item;
       if (type === 'text') result += data.text || '';
-      else result += `<${type},${Object.entries(data).map(([key, value]) => `${key}=${value}`).join(',')}>`;
+      else
+        result += `<${type},${Object.entries(data)
+          .map(([key, value]) => `${key}=${JSON.stringify(value).replace(/,/g, '_🤤_🤖_')}`)
+          .join(',')}>`;
     }
     return result;
   }

@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "scripts": {
         "start": "52bot",
+        "initial": "52bot init -m dev",
         "dev": "52bot -m dev"
     },
     "dependencies": {

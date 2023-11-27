@@ -11,7 +11,7 @@ export type Segment=`<${string},${string}>`|string
 export function segment(type:string,data:Dict):Segment{
     if(type==='text') return data.text
     return `<${type},${Object.entries(data).map(([key,value])=>{
-        return `${key}=${JSON.stringify(value).replace('=','🤤🤖')}`
+        return `${key}=${JSON.stringify(value).replace(/,/g,'_🤤_🤖_')}`
     }).join()}>`
 }
 type MessageSender={

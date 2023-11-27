@@ -1,4 +1,5 @@
 export * from './adapter'
+export * from './message'
 export * from './types'
 export * from './utils'
 export * from './command'

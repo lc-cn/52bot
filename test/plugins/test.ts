@@ -1,4 +1,4 @@
-import {Plugin} from '52bot';
+import {Plugin, segment} from '52bot';
 const test=new Plugin('测试插件2')
 test.command('test-confirm')
   .action(async (runtime)=>{
@@ -23,9 +23,10 @@ test.command('test-list')
     return `inputResult:${input} ${typeof input}`
   })
 test.command('test-pick')
-  .action(async (runtime)=>{
-    const input=await runtime.prompt.pick('text',{
+  .action(async ({prompt})=>{
+    const input=await prompt.pick('请选择你喜欢的水果',{
       type:'text',
+      multiple:true,
       options:[
         {
           label:'苹果',
@@ -43,4 +44,25 @@ test.command('test-pick')
     })
     return `inputResult:${input} ${typeof input}`
   })
+test.command('md_btn')
+.action(()=>{
+  return [
+    segment('markdown',{
+      content:'hello'
+    }),
+    segment('button',{
+      id:"1",
+      render_data:{
+        label:'测试按钮',
+        visited_label:'点过了'
+      },
+      action:{
+        type: 2,
+        permission:{
+          type:0
+        }
+      }
+    })
+  ].join('')
+})
 export default test

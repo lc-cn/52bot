@@ -1,8 +1,7 @@
-import { MessageElem, Sendable } from 'icqq';
-
+import { MessageElem, Sendable } from 'qq-group-bot';
 export function sendableToString(message: Sendable) {
   let result = '';
-  if (!Array.isArray(message)) message = [message];
+  if (!Array.isArray(message)) message = [message as any];
   for (const item of message) {
     if (typeof item === 'string') {
       result += item;
@@ -14,7 +13,7 @@ export function sendableToString(message: Sendable) {
       continue;
     }
     const attrs = Object.entries(data).map(([key, value]) => {
-      return `${key}=${JSON.stringify(value).replace(/=/g, '_🤤_🤖_')}`;
+      return `${key}=${JSON.stringify(value).replace(/,/g, '_🤤_🤖_')}`;
     });
     result += `<${type},${attrs.join(',')}>`;
   }
@@ -38,8 +37,8 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
     const [type, ...attrArr] = match.slice(1, -1).split(',');
     const attrs = Object.fromEntries(
       attrArr.map((attr: string) => {
-        const [key, ...value] = attr.split('=');
-        return [key, JSON.parse(value.join('=').replace(/_🤤_🤖_/g, ','))];
+        const [key, ...values] = attr.split('=');
+        return [key, JSON.parse(values.join('=').replace(/_🤤_🤖_/g, ','))];
       }),
     );
     result.push({
@@ -57,7 +56,7 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
 }
 export function formatSendable(message: Sendable) {
   const result: MessageElem[] = [];
-  if (!Array.isArray(message)) message = [message];
+  if (!Array.isArray(message)) message = [message as any];
   for (const item of message) {
     if (typeof item !== 'string') {
       result.push(item);
@@ -65,5 +64,5 @@ export function formatSendable(message: Sendable) {
       result.push(...parseFromTemplate(item));
     }
   }
-  return result;
+  return result as Sendable;
 }
