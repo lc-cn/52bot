@@ -18,9 +18,14 @@ export class App extends EventEmitter {
     constructor(public config: App.Config) {
         super();
         this.logger.level = config.logLevel
-        this.initAdapter(config.adapters)
         this.handleMessage = this.handleMessage.bind(this)
         this.on('message', this.handleMessage)
+        return new Proxy(this,{
+            get(target:App,key){
+                if(Reflect.has(target.services,key)) return Reflect.get(target.services,key)
+                return Reflect.get(target,key)
+            }
+        })
     }
 
     initAdapter(adapter_names: string[]) {
@@ -51,11 +56,11 @@ export class App extends EventEmitter {
     }
 
     get services() {
-        let result: Dict<any, string | symbol> = {}
+        let result:App.Services={}
         this.pluginList.forEach(plugin => {
             plugin.services.forEach((service, name) => {
                 if (Reflect.ownKeys(result).includes(name)) return
-                result[name] = service
+                Reflect.set(result,name,service)
             })
         })
         return result
@@ -154,13 +159,7 @@ export class App extends EventEmitter {
         this.plugins.set(plugin.name, plugin)
         plugin[AppKey] = this
         for (const [name, service] of plugin.services) {
-            if (!this.services[name]) {
-                this.emit('service-beforeRegister', name, service)
-                this.services[name] = service
-                this.emit('service-registered', name, service)
-                continue;
-            }
-            this.logger.warn(`${plugin.name} 有重复的服务，将忽略其挂载。`)
+            this.emit('service-register', name, service)
         }
         this.emit('plugin-mounted', plugin)
         this.logger.info(`插件：${plugin.name} 已加载。`)
@@ -185,11 +184,7 @@ export class App extends EventEmitter {
         this.plugins.delete(plugin.name)
         plugin[AppKey] = null
         for (const [name, service] of plugin.services) {
-            if (this.services[name] && this.services[name] === service) {
-                this.emit('service-beforeDestroy', name, service)
-                delete this.services[name]
-                this.emit('service-destroyed', name, service)
-            }
+            this.emit('service-destroy', name, service)
         }
         this.logger.info(`插件：${plugin.name} 已卸载。`)
         this.emit('plugin-unmounted', plugin)
@@ -197,6 +192,7 @@ export class App extends EventEmitter {
     }
 
     async start() {
+        this.initAdapter(this.config.adapters)
         for (const [name, adapter] of this.adapters) {
             adapter.emit('start')
             this.logger.info(`适配器： ${name} 已启动`)
@@ -242,7 +238,7 @@ export class App extends EventEmitter {
     }
 }
 
-export interface App {
+export interface App extends App.Services{
     on<T extends keyof App.EventMap>(event: T, listener: App.EventMap[T]): this
 
     on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>, listener: (...args: any[]) => any): this
@@ -297,10 +293,8 @@ export namespace App {
         'plugin-unmounted'(plugin: Plugin): void
 
         'message': <AD extends Adapter>(adapter: AD, bot: AdapterBot<AD>, message: AdapterReceive<AD>) => void
-        'service-beforeRegister': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
-        'service-registered': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
-        'service-beforeDestroy': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
-        'service-destroyed': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
+        'service-register': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
+        'service-destroy': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void
     }
 
     export interface Services {

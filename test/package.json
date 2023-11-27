@@ -3,12 +3,13 @@
     "version": "1.0.0",
     "scripts": {
         "start": "52bot",
-        "dev": "pnpm -C ../core build && 52bot -m dev"
+        "dev": "52bot -m dev"
     },
     "dependencies": {
         "52bot": "workspace:latest",
         "@52bot/icqq": "workspace:latest",
         "@52bot/qq": "workspace:latest",
-        "@52bot/plugin-guild-manager": "workspace:latest"
+        "@52bot/onebot-11": "workspace:latest",
+        "@52bot/plugin-http-server": "workspace:latest"
     }
 }

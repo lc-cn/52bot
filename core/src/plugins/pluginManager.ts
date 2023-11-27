@@ -2,8 +2,7 @@ import { Plugin } from '@/plugin';
 import { segment } from '@/message';
 
 const PM = new Plugin('插件管理');
-PM
-  .command('插件列表')
+PM.command('插件列表')
   .desc('查看已安装插件')
   .scope('private', 'group', 'guild', 'direct')
   .action((runtime) => {
@@ -13,8 +12,7 @@ PM
       }).join('\n'),
     });
   });
-PM
-  .command('启用插件 [name:string]')
+PM.command('启用插件 [name:string]')
   .permission('admin')
   .scope('direct')
   .action((runtime, name) => {

@@ -1,6 +1,6 @@
 {
   "name": "52bot",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "lib/index.js",
   "bin": "./bin.js",
   "scripts": {
@@ -36,9 +36,6 @@
     "tsconfig-paths": "^4.2.0",
     "ws": "^8.14.0",
     "yaml": "^2.3.4"
-  },
-  "peerDependencies": {
-    "qq-group-bot": "latest"
   },
   "devDependencies": {
     "@types/ws": "^8.5.5",

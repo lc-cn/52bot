@@ -5,7 +5,6 @@ import {
   GroupMessageEvent,
   GuildMessageEvent,
   DirectMessageEvent,
-  Sendable
 } from "qq-group-bot";
 type QQMessageEvent=PrivateMessageEvent|GroupMessageEvent|GuildMessageEvent|DirectMessageEvent
 type QQAdapterConfig=QQConfig[]

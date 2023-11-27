@@ -75,7 +75,7 @@ export class Prompt<T extends Adapter>{
       })
     })
   }
-  async pick<T extends Prompt.SingleType,M extends boolean>(tips:string,config:Prompt.PickConfig<T,M>):Promise<Prompt.PickResult<T,M>>{
+  async pick<T extends Prompt.SingleType,M extends boolean=false>(tips:string,config:Prompt.PickConfig<T,M>):Promise<Prompt.PickResult<T,M>>{
     const moreTextArr=config.options.map((o,idx)=>{
       return `${idx+1}.${o.label}`
     })

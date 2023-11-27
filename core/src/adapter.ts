@@ -1,58 +1,70 @@
-import {App} from "@/app";
-import {EventEmitter} from "events";
-import {MessageBase} from "@/message";
-import path from "path";
-export type AdapterBot<A extends Adapter>=A extends Adapter<infer B>?B:unknown
-export type AdapterReceive<A extends Adapter>=A extends Adapter<infer B,infer R>?R:unknown
-export class Adapter<T=object,R=MessageBase> extends EventEmitter{
-    bots:T[]=[]
-    zhin:App|null=null
-    constructor(public name:string) {
-        super()
-    }
-    mount(zhin:App){
-        this.emit('before-mount')
-        this.zhin=zhin
-        this.emit('mounted')
-    }
-    unmount(){
-        this.emit('before-unmount')
-        this.zhin=null
-        this.emit('unmounted')
-    }
+import { App } from '@/app';
+import { EventEmitter } from 'events';
+import { MessageBase } from '@/message';
+import path from 'path';
+import * as process from 'process';
+import { getLogger, Logger } from 'log4js';
+
+export type AdapterBot<A extends Adapter> = A extends Adapter<infer B> ? B : unknown
+export type AdapterReceive<A extends Adapter> = A extends Adapter<infer B, infer R> ? R : unknown
+
+export class Adapter<T = object, R = MessageBase> extends EventEmitter {
+  bots: T[] = [];
+  zhin: App | null = null;
+  private _logger?:Logger
+  get logger(){
+    return this._logger||=getLogger(`[${this.name}]`)
+  }
+  constructor(public name: string) {
+    super();
+  }
+
+  mount(zhin: App) {
+    this.emit('before-mount');
+    this.logger.level=zhin.config.logLevel
+    this.zhin = zhin;
+    this.emit('mounted');
+  }
+
+  unmount() {
+    this.emit('before-unmount');
+    this.zhin = null;
+    this.emit('unmounted');
+  }
 }
-export interface Adapter{
-    on<T extends keyof Adapter.EventMap>(event: T, listener: Adapter.EventMap[T]): this
 
-    on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, listener: (...args: any[]) => any): this
+export interface Adapter {
+  on<T extends keyof Adapter.EventMap>(event: T, listener: Adapter.EventMap[T]): this;
 
-    off<T extends keyof Adapter.EventMap>(event: T, callback?: Adapter.EventMap[T]): this
+  on<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, listener: (...args: any[]) => any): this;
 
-    off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, callback?: (...args: any[]) => void): this
+  off<T extends keyof Adapter.EventMap>(event: T, callback?: Adapter.EventMap[T]): this;
 
-    once<T extends keyof Adapter.EventMap>(event: T, listener: Adapter.EventMap[T]): this
+  off<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, callback?: (...args: any[]) => void): this;
 
-    once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, listener: (...args: any[]) => any): this
+  once<T extends keyof Adapter.EventMap>(event: T, listener: Adapter.EventMap[T]): this;
 
-    emit<T extends keyof Adapter.EventMap>(event: T, ...args: Parameters<Adapter.EventMap[T]>): boolean
+  once<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, listener: (...args: any[]) => any): this;
 
-    emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, ...args: any[]): boolean
+  emit<T extends keyof Adapter.EventMap>(event: T, ...args: Parameters<Adapter.EventMap[T]>): boolean;
 
-    addListener<T extends keyof Adapter.EventMap>(event: T, listener: Adapter.EventMap[T]): this
+  emit<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, ...args: any[]): boolean;
 
-    addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, listener: (...args: any[]) => any): this
+  addListener<T extends keyof Adapter.EventMap>(event: T, listener: Adapter.EventMap[T]): this;
 
-    addListenerOnce<T extends keyof Adapter.EventMap>(event: T, callback: Adapter.EventMap[T]): this
+  addListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, listener: (...args: any[]) => any): this;
 
-    addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, callback: (...args: any[]) => void): this
+  addListenerOnce<T extends keyof Adapter.EventMap>(event: T, callback: Adapter.EventMap[T]): this;
 
-    removeListener<T extends keyof Adapter.EventMap>(event: T, callback?: Adapter.EventMap[T]): this
+  addListenerOnce<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, callback: (...args: any[]) => void): this;
 
-    removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, callback?: (...args: any[]) => void): this
+  removeListener<T extends keyof Adapter.EventMap>(event: T, callback?: Adapter.EventMap[T]): this;
 
-    removeAllListeners<T extends keyof Adapter.EventMap>(event: T): this
+  removeListener<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>, callback?: (...args: any[]) => void): this;
 
-    removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>): this
+  removeAllListeners<T extends keyof Adapter.EventMap>(event: T): this;
+
+  removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof Adapter.EventMap>): this;
 
 }
 export namespace Adapter{

@@ -26,7 +26,6 @@ test.command('test-pick')
   .action(async (runtime)=>{
     const input=await runtime.prompt.pick('text',{
       type:'text',
-      multiple:true,
       options:[
         {
           label:'苹果',

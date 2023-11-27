@@ -32,9 +32,8 @@ export class Plugin extends EventEmitter {
         this.filePath=stack[0]?.getFileName()!;
         return new Proxy(this,{
             get(target:Plugin,key){
-                if(Reflect.ownKeys(target).includes(key)) return Reflect.get(target,key)
-                if(!Reflect.get(target,'bot')) return Reflect.get(target,key)
-                return Reflect.get(target?.app!.services,key)
+                if(!target.app||Reflect.has(target,key)) return Reflect.get(target,key)
+                return Reflect.get(target.app.services,key)
             }
         })
     }
@@ -73,10 +72,10 @@ export class Plugin extends EventEmitter {
             })
             if(servicesHasReady){
                 callback(this)
-                this.app!.off('service-registered',installFn)
+                this.app!.off('service-register',installFn)
             }
         }
-        this.app!.on('service-registered',installFn)
+        this.app!.on('service-register',installFn)
         return this
     }
     // @ts-ignore
