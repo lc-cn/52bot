@@ -16,7 +16,8 @@
     },
     "dependencies": {
         "52bot": "workspace:latest",
-        "ws": "latest"
+        "ws": "latest",
+        "@52bot/plugin-http-server": "workspace:latest"
     },
     "peerDependencies": {
         "@52bot/plugin-http-server": "workspace:latest"

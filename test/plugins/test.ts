@@ -71,4 +71,13 @@ test.command('cmd')
       content:`<cmd reply='true' cmd="/help">`
     })
   })
+test.command('save')
+  .action(()=>{
+    test.jsondb.setData('test',['hello world'])
+    return test.jsondb.getData('test')
+  })
+test.command('get')
+  .action(()=>{
+    return test.jsondb.getData('test')
+  })
 export default test
