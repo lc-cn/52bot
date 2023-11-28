@@ -7,11 +7,29 @@ export interface MessageBase{
     raw_message:string
     message_type:Command.Scope
 }
+const wrapKV=Object.entries({
+    ',':'_🤤_🤖_',
+    '&':'$amp;',
+    '<':'&lt;',
+    '>':'&gt;'
+}).map(([key,value])=>({key,value}))
+export function wrap(message:string){
+    for(const {key,value} of wrapKV){
+        message=message.replace(new RegExp(key,'g'),value)
+    }
+    return message
+}
+export function unwrap(message:string){
+    for(const {key,value} of wrapKV){
+        message=message.replace(new RegExp(value,'g'),key)
+    }
+    return message
+}
 export type Segment=`<${string},${string}>`|string
 export function segment(type:string,data:Dict):Segment{
     if(type==='text') return data.text
     return `<${type},${Object.entries(data).map(([key,value])=>{
-        return `${key}=${JSON.stringify(value).replace(/,/g,'_🤤_🤖_')}`
+        return `${key}=${wrap(JSON.stringify(value))}`
     }).join()}>`
 }
 type MessageSender={

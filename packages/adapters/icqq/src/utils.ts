@@ -1,4 +1,5 @@
 import { MessageElem, Sendable } from 'icqq';
+import { unwrap } from '52bot';
 
 export function sendableToString(message: Sendable) {
   let result = '';
@@ -38,8 +39,8 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
     const [type, ...attrArr] = match.slice(1, -1).split(',');
     const attrs = Object.fromEntries(
       attrArr.map((attr: string) => {
-        const [key, ...value] = attr.split('=');
-        return [key, JSON.parse(value.join('=').replace(/_🤤_🤖_/g, ','))];
+        const [key, ...values] = attr.split('=');
+        return [key, JSON.parse(unwrap(values.join('=')))];
       }),
     );
     result.push({

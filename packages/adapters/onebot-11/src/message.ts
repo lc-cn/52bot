@@ -1,4 +1,4 @@
-import { Dict } from '52bot';
+import { Dict, unwrap } from '52bot';
 import { OneBotV11 } from '@/onebot';
 
 export class MessageV11 {
@@ -88,7 +88,7 @@ export namespace MessageV11 {
       const data = Object.fromEntries(
         attrs.map(attrStr => {
           const [key, ...valueArr] = attrStr.split('=');
-          return [key, JSON.parse(valueArr.join('=').replace(/_🤤_🤖_/g, ','))];
+          return [key, JSON.parse(unwrap(valueArr.join('=')))];
         }),
       );
       result.push({ type, data });

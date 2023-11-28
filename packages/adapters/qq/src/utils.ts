@@ -1,4 +1,5 @@
 import { MessageElem, Sendable } from 'qq-group-bot';
+import { unwrap } from '52bot';
 export function sendableToString(message: Sendable) {
   let result = '';
   if (!Array.isArray(message)) message = [message as any];
@@ -38,7 +39,7 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
     const attrs = Object.fromEntries(
       attrArr.map((attr: string) => {
         const [key, ...values] = attr.split('=');
-        return [key, JSON.parse(values.join('=').replace(/_🤤_🤖_/g, ','))];
+        return [key, JSON.parse(unwrap(values.join('=')))];
       }),
     );
     result.push({

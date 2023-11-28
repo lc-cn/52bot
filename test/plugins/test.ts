@@ -47,8 +47,8 @@ test.command('test-pick')
 test.command('md_btn')
 .action(()=>{
   return [
-    segment('markdown',{
-      content:'hello'
+    segment('text',{
+      text:'123'
     }),
     segment('button',{
       id:"1",
@@ -65,4 +65,10 @@ test.command('md_btn')
     })
   ].join('')
 })
+test.command('cmd')
+  .action(()=>{
+    return segment('markdown',{
+      content:`<cmd reply='true' cmd="/help">`
+    })
+  })
 export default test
