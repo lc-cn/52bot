@@ -1,4 +1,4 @@
-import {Plugin, segment} from '52bot';
+import { Dict, Plugin, segment } from '52bot';
 const test=new Plugin('测试插件2')
 test.command('test-confirm')
   .action(async (runtime)=>{
@@ -73,11 +73,15 @@ test.command('cmd')
   })
 test.command('save')
   .action(()=>{
-    test.jsondb.setData('test',['hello world'])
-    return test.jsondb.getData('test')
+    const obj:Dict={
+      foo:'bar'
+    }
+    obj.abc=obj
+    test.jsondb.set('test',obj)
+    console.log(test.jsondb.get('test'))
   })
 test.command('get')
   .action(()=>{
-    return test.jsondb.getData('test')
+    console.log(test.jsondb.get('test'))
   })
 export default test
