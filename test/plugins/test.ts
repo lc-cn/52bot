@@ -71,17 +71,4 @@ test.command('cmd')
       content:`<cmd reply='true' cmd="/help">`
     })
   })
-test.command('save')
-  .action(()=>{
-    const obj:Dict={
-      foo:'bar'
-    }
-    obj.abc=obj
-    test.jsondb.set('test',obj)
-    console.log(test.jsondb.get('test'))
-  })
-test.command('get')
-  .action(()=>{
-    console.log(test.jsondb.get('test'))
-  })
 export default test

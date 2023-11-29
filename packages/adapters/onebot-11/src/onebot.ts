@@ -15,7 +15,9 @@ export class OneBotV11 extends EventEmitter {
     super();
     this.dispatch = this.dispatch.bind(this);
   }
-
+  get app(){
+    return this.adapter.app
+  }
   reTryCount = 0;
   ws?: WebSocket;
   wss: Map<string, WebSocketServer> = new Map<string, WebSocketServer>();

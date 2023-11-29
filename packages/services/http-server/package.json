@@ -12,7 +12,7 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/plugins/http-server"
+        "directory": "packages/services/http-server"
     },
     "dependencies": {
         "52bot": "workspace:latest",

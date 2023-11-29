@@ -6,7 +6,7 @@ type MessageEvent = PrivateMessageEventV11 | GroupMessageEventV11;
 export type OneBotV11Adapter = typeof oneBotV11;
 const oneBotV11 = new Adapter<OneBotV11, MessageEvent>('OneBotV11');
 const initBot = () => {
-  if (!oneBotV11.zhin?.server)
+  if (!oneBotV11.app?.server)
     throw new Error('“oneBot V11 miss require service “http”, maybe you need install “ @52bot/plugin-http-server ”');
   const [configs, isCreate] = loadYamlConfigOrCreate<OneBotV11Adapter.Config>('onebot-11.yaml', [
     {
@@ -21,11 +21,11 @@ const initBot = () => {
     },
   ]);
   if (isCreate) {
-    oneBotV11.zhin!.logger.info('请先完善onebot-11.yaml中的配置后继续');
+    oneBotV11.app!.logger.info('请先完善onebot-11.yaml中的配置后继续');
     return process.exit();
   }
   for (const config of configs) {
-    oneBotV11.bots.push(new OneBotV11(oneBotV11, config, oneBotV11.zhin!.router));
+    oneBotV11.bots.push(new OneBotV11(oneBotV11, config, oneBotV11.app!.router));
   }
   oneBotV11.on('start', startBots);
   oneBotV11.on('stop', stopBots);
@@ -41,7 +41,7 @@ const messageHandler = (bot: OneBotV11, message: Dict) => {
     default:
       return;
   }
-  oneBotV11.zhin!.emit('message', oneBotV11, bot, message);
+  oneBotV11.app!.emit('message', oneBotV11, bot, message);
 };
 const startBots = () => {
   for (const bot of oneBotV11.bots) {

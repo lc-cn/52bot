@@ -10,7 +10,7 @@ export type AdapterReceive<A extends Adapter> = A extends Adapter<infer B, infer
 
 export class Adapter<T = object, R = MessageBase> extends EventEmitter {
   bots: T[] = [];
-  zhin: App | null = null;
+  app: App | null = null;
   private _logger?:Logger
   get logger(){
     return this._logger||=getLogger(`[${this.name}]`)
@@ -19,16 +19,16 @@ export class Adapter<T = object, R = MessageBase> extends EventEmitter {
     super();
   }
 
-  mount(zhin: App) {
+  mount(app: App) {
     this.emit('before-mount');
-    this.logger.level=zhin.config.logLevel
-    this.zhin = zhin;
+    this.logger.level=app.config.logLevel
+    this.app = app;
     this.emit('mounted');
   }
 
   unmount() {
     this.emit('before-unmount');
-    this.zhin = null;
+    this.app = null;
     this.emit('unmounted');
   }
 }

@@ -35,12 +35,12 @@ const initBot = () => {
     },
   ]);
   if (isCreate) {
-    qq.zhin!.logger.info('请先完善qq.yaml中的配置后继续');
+    qq.app!.logger.info('请先完善qq.yaml中的配置后继续');
     process.exit();
   }
   for (const { private: isPrivate, group, public: isPublic, ...config } of configs) {
     const botConfig: Bot.Config = {
-      logLevel: qq.zhin!.config.logLevel,
+      logLevel: qq.app!.config.logLevel,
       ...config,
       intents: [
         group && 'GROUP_AT_MESSAGE_CREATE',
@@ -62,15 +62,16 @@ const initBot = () => {
 };
 const messageHandler = (bot: Bot, message: QQMessageEvent) => {
   message.raw_message = sendableToString(message.message).trim();
-  const commands = qq.zhin!.getSupportCommands(qq, bot, message);
+  const commands = qq.app!.getSupportCommands(qq, bot, message);
   const matchReg = new RegExp(`^/(${commands.map(c => c.name).join('|')})`);
   if (message.raw_message.match(matchReg)) message.raw_message = message.raw_message.slice(1);
   const oldReply = message.reply;
-  message.reply = function (message: Sendable) {
+  message.reply = async function (message: Sendable) {
+    message=await qq.app!.renderMessage(message as string,this as any)
     message = formatSendable(message);
     return oldReply.call(this, message);
   };
-  qq.zhin!.emit('message', qq, bot, message);
+  qq.app!.emit('message', qq, bot, message);
 };
 const startBots = () => {
   for (const bot of qq.bots) {

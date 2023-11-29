@@ -2,19 +2,20 @@ import {EventEmitter} from "events";
 import {Logger, getLogger} from "log4js";
 import {Middleware} from "@/middleware";
 import {Plugin, PluginMap} from "@/plugin";
-import {Dict, LogLevel} from "@/types";
+import { LogLevel} from "@/types";
 import { loadPlugin, remove } from '@/utils';
 import {AppKey} from "@/constans";
 import path from "path";
 import fs from "fs";
 import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
+import { MessageBase, Render } from '@/message';
 
 export class App extends EventEmitter {
     logger: Logger = getLogger(`[52bot]`)
     adapters: Map<string, Adapter> = new Map<string, Adapter>()
     middlewares:Middleware[]=[]
     plugins: PluginMap = new PluginMap()
-
+    renders:Render[]=[]
     constructor(public config: App.Config) {
         super();
         this.logger.level = config.logLevel
@@ -27,7 +28,18 @@ export class App extends EventEmitter {
             }
         })
     }
-
+    registerRender(render:Render){
+        this.renders.push(render)
+        return ()=>remove(this.renders,render)
+    }
+    async renderMessage<T extends MessageBase=MessageBase>(template:string,message:T){
+        for(const render of this.renders){
+            try{
+                template=await render(template,message)
+            }catch {}
+        }
+        return template
+    }
     initAdapter(adapter_names: string[]) {
         for (const name of adapter_names) {
             if (!name) continue

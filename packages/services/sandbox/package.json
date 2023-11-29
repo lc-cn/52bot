@@ -1,8 +1,9 @@
 {
-    "name": "@52bot/plugin-jsondb",
+    "name": "@52bot/plugin-sandbox",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "version": "0.0.2",
+
     "scripts": {
         "build": "tsc && tsc-alias"
     },
@@ -12,7 +13,7 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/services/jsondb"
+        "directory": "packages/services/sandbox"
     },
     "dependencies": {
         "52bot": "workspace:latest"

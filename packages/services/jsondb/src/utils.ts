@@ -42,7 +42,7 @@ export function parseObjFromStr(str:string){
     if(!data) return
     if(typeof data!=='object' && typeof data!=='string') return
     if(typeof data==='object') return Object.entries(data).map(([k,v])=>format(v,[...keys,k]))
-    if(/\[Function:.+]/.test(data)) return setValueToObj(result,[...keys],new Function(data.slice(10,-1)))
+    if(/\[Function:.+]/.test(data)) return setValueToObj(result,[...keys],new Function(`return (${data.slice(10,-1)})`)())
     if(/\[Circular:.+]/.test(data)) setValueToObj(result,[...keys],getValueOfObj(result,data.slice(10,-1)))
   }
   format(result,[])
@@ -57,7 +57,7 @@ export function stringifyObj(value:any):string{
       const val=Reflect.get(obj,key)
       if(!val||typeof val!=='object'){
         if(typeof val==='function'){
-          setValueToObj(result,[...prefix,String(key)],`[Function:${val+''}]`)
+          setValueToObj(result,[...prefix,String(key)],`[Function:${(val+'').replace(/\n/g,'')}]`)
           continue
         }
         setValueToObj(result,[...prefix,String(key)],val)

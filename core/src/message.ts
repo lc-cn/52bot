@@ -2,7 +2,7 @@ import {Command} from "@/command";
 import { Dict } from '@/types';
 
 export interface MessageBase{
-    reply(...args:any[]):Promise<any>
+    reply(message:string):Promise<any>
     sender?:MessageSender
     raw_message:string
     message_type:Command.Scope
@@ -25,6 +25,7 @@ export function unwrap(message:string){
     }
     return message
 }
+export type Render<T extends MessageBase=MessageBase>=(template:string,message:T)=>Promise<string>|string
 export type Segment=`<${string},${string}>`|string
 export function segment(type:string,data:Dict):Segment{
     if(type==='text') return data.text
@@ -33,7 +34,7 @@ export function segment(type:string,data:Dict):Segment{
     }).join()}>`
 }
 type MessageSender={
-    user_id?:string
+    user_id?:string|number
     user_name?:string
     permissions?:string[]
 }

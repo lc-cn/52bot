@@ -27,7 +27,7 @@ export class Prompt<T extends Adapter>{
       dispose()
       clearTimeout(timer)
     }
-    const dispose=this.adapter.zhin!.middleware(middleware)
+    const dispose=this.adapter.app!.middleware(middleware)
     const timer=setTimeout(()=>{
       dispose()
       callback(new Error('输入超时'))

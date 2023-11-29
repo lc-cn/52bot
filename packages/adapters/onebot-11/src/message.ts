@@ -28,6 +28,7 @@ export class PrivateMessageEventV11 extends MessageV11 implements MessageV11.Mes
   }
 
   async reply(message: MessageV11.Sendable) {
+    message=await this.bot.app!.renderMessage(message as string,this)
     message = MessageV11.formatSegments(message);
     if (typeof this.message === 'string') message = MessageV11.segmentsToCqCode(message as MessageV11.Segment[]);
     return this.bot.sendPrivateMsg(this.user_id!, message);
@@ -42,6 +43,7 @@ export class GroupMessageEventV11 extends MessageV11 implements MessageV11.Messa
   }
 
   async reply(message: MessageV11.Sendable) {
+    message=await this.bot.app!.renderMessage(message as string,this)
     message = MessageV11.formatSegments(message);
     if (typeof this.message === 'string') message = MessageV11.segmentsToCqCode(message as MessageV11.Segment[]);
     return this.bot.sendGroupMsg(this.group_id!, message);

@@ -12,6 +12,7 @@
         "@52bot/qq": "workspace:latest",
         "@52bot/onebot-11": "workspace:latest",
         "@52bot/plugin-http-server": "workspace:latest",
-        "@52bot/plugin-jsondb": "workspace:latest"
+        "@52bot/plugin-jsondb": "workspace:latest",
+        "@52bot/plugin-sandbox": "workspace:latest"
     }
 }

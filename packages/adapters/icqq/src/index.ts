@@ -10,7 +10,7 @@ import {
 } from 'icqq';
 import * as process from 'process';
 import { formatSendable, sendableToString } from '@/utils';
-type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DiscussMessageEvent;
+type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent;
 type ICQQAdapterConfig = QQConfig[];
 export type ICQQAdapter = typeof icqq;
 const icqq = new Adapter<Client, QQMessageEvent>('icqq');
@@ -30,7 +30,7 @@ const initBot = () => {
     },
   ]);
   if (isCreate) {
-    icqq.zhin!.logger.info('请先完善icqq.yaml中的配置后继续');
+    icqq.app!.logger.info('请先完善icqq.yaml中的配置后继续');
     process.exit();
   }
   adapterConfig = configs;
@@ -43,11 +43,12 @@ const initBot = () => {
 const messageHandler = (bot: Client, message: QQMessageEvent) => {
   message.raw_message = sendableToString(message.message);
   const oldReply = message.reply;
-  message.reply = function (message: Sendable, quote?: boolean) {
+  message.reply = async function (message: Sendable, quote?: boolean) {
+    message=await icqq.app!.renderMessage(message as string,this)
     message = formatSendable(message);
     return oldReply.call(this, message, quote);
   };
-  icqq.zhin!.emit('message', icqq, bot, message);
+  icqq.app!.emit('message', icqq, bot, message);
 };
 const botLogin = async (bot: Client) => {
   return new Promise<void>(resolve => {
@@ -56,17 +57,17 @@ const botLogin = async (bot: Client) => {
       resolve();
     });
     bot.on('system.login.device', e => {
-      icqq.zhin!.logger.mark('请选择设备验证方式：\n1.扫码验证\t其他.短信验证');
+      icqq.app!.logger.mark('请选择设备验证方式：\n1.扫码验证\t其他.短信验证');
       process.stdin.once('data', buf => {
         const input = buf.toString().trim();
         if (input === '1') {
-          icqq.zhin!.logger.mark('请点击上方链接完成验证后回车继续');
+          icqq.app!.logger.mark('请点击上方链接完成验证后回车继续');
           process.stdin.once('data', () => {
             bot.login();
           });
         } else {
           bot.sendSmsCode();
-          icqq.zhin!.logger.mark(`请输入手机号(${e.phone})收到的短信验证码：`);
+          icqq.app!.logger.mark(`请输入手机号(${e.phone})收到的短信验证码：`);
           process.stdin.once('data', buf => {
             bot.submitSmsCode(buf.toString().trim());
           });
@@ -74,13 +75,13 @@ const botLogin = async (bot: Client) => {
       });
     });
     bot.on('system.login.qrcode', () => {
-      icqq.zhin!.logger.mark('请扫描二维码后回车继续');
+      icqq.app!.logger.mark('请扫描二维码后回车继续');
       process.stdin.once('data', () => {
         bot.login();
       });
     });
     bot.on('system.login.slider', () => {
-      icqq.zhin!.logger.mark('请点击上方链接，完成滑块验证后，输入获取到的ticket后继续');
+      icqq.app!.logger.mark('请点击上方链接，完成滑块验证后，输入获取到的ticket后继续');
       process.stdin.once('data', buf => {
         bot.login(buf.toString().trim());
       });
