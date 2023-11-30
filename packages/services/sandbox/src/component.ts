@@ -64,14 +64,14 @@ export class Component<T = {}, D = {}, P = Component.Props<T>> {
   async render(template:string,context:Component.Context):Promise<string> {
     const props=this.parseProps(template)
     const data=this.$options.data?this.$options.data.apply(props):{} as D
-    const children=this.parseChildren(template)
+    context.children=this.parseChildren(template)||context.children
     const result=await this.$options.render(props,{
       $slots:context.$slots||{},
       ...props,
       ...data,
       render:context.render,
       parent:context,
-      children
+      children:context.children
     } as Component.Context<D & P>)
     context.$root=context.$root.replace(template,result)
     return context.render(context.$root,context)
