@@ -71,4 +71,27 @@ test.command('cmd')
       content:`<cmd reply='true' cmd="/help">`
     })
   })
+test.mounted(()=>{
+  test.defineComponent({
+    name:'test2',
+    render(_,context){
+      return `<slot/> 我在这儿`
+    }
+  })
+  test.defineComponent({
+    name:'test',
+    data(){
+      return {
+        who:'张三'
+      }
+    },
+    render(props,context){
+      return `hello ${context.who}`
+    }
+  })
+})
+test.command('comp')
+  .action(()=>{
+    return `<test2><template $name='default'><test :who='everyone' age="18"/></template></test2>`
+  })
 export default test
