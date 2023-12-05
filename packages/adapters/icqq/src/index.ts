@@ -20,15 +20,17 @@ type QQConfig = {
 } & Config;
 let adapterConfig: ICQQAdapterConfig;
 const initBot = () => {
-  const [configs, isCreate] = loadYamlConfigOrCreate<ICQQAdapterConfig>('icqq.yaml', [
-    {
-      uin: 0,
-      password: '',
-      platform: 2,
-      data_dir: 'data',
-      sign_api_addr: '',
-    },
-  ]);
+  const [configs, isCreate] = loadYamlConfigOrCreate<ICQQAdapterConfig>(
+    'icqq.yaml', JSON.stringify(
+      [
+        {
+          uin: 0,
+          password: '',
+          platform: 2,
+          data_dir: 'data',
+          sign_api_addr: '',
+        },
+      ],null,2));
   if (isCreate) {
     icqq.app!.logger.info('请先完善icqq.yaml中的配置后继续');
     process.exit();

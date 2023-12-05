@@ -1,4 +1,5 @@
 import { Dict, Plugin, segment } from '52bot';
+import '@52bot/plugin-sandbox'
 const test=new Plugin('测试插件2')
 test.command('test-confirm')
   .action(async (runtime)=>{
@@ -80,9 +81,10 @@ test.mounted(()=>{
   })
   test.defineComponent({
     name:'test',
-    data(){
-      return {
-        who:'张三'
+    props:{
+      who:{
+        type:String,
+        default:'张三'
       }
     },
     render(props,context){
@@ -92,6 +94,6 @@ test.mounted(()=>{
 })
 test.command('comp')
   .action(()=>{
-    return `<test2><template $name='default'><test :who='everyone' age="18"/></template></test2>`
+    return `<test2><template><test :who='everyone' age="18"/></template></test2>`
   })
 export default test

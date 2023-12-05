@@ -119,7 +119,6 @@ export function formatTime(seconds:number){
     const units = [
         {name: '年', value: 60 * 60 * 24 * 365},
         {name: '月', value: 60 * 60 * 24 * 30},
-        {name: '周', value: 60 * 60 * 24 * 7},
         {name: '天', value: 60 * 60 * 24},
         {name: '小时', value: 60 * 60},
         {name: '分钟', value: 60},
@@ -134,11 +133,11 @@ export function formatTime(seconds:number){
     }
     return result.trimEnd()
 }
-export function loadYamlConfigOrCreate<T>(name:string,defaultValue:T):[T,boolean]{
+export function loadYamlConfigOrCreate<T>(name:string,defaultValue:string):[T,boolean]{
     const filePath=path.resolve(process.cwd(),name)
     let needCreate=!fs.existsSync(filePath)
     if(needCreate){
-        fs.writeFileSync(filePath,YAML.stringify(defaultValue),'utf8')
+        fs.writeFileSync(filePath,defaultValue,'utf8')
     }
     const fileData=fs.readFileSync(filePath,'utf8')
     return [YAML.parse(fileData),needCreate]

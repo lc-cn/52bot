@@ -1,10 +1,11 @@
 {
-    "name": "@52bot/qq",
+    "name": "@52bot/plugin-drawer",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.6",
+    "version": "0.0.1",
+
     "scripts": {
-        "build": "tsc && tsc-alias && mv src/qq.default.yaml lib/qq-default.yaml"
+        "build": "tsc && tsc-alias"
     },
     "files": [
         "lib"
@@ -12,10 +13,13 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/adapters/qq"
+        "directory": "packages/plugins/drawer"
     },
     "dependencies": {
+        "@types/svgdom": "latest",
         "52bot": "workspace:latest",
-        "qq-group-bot": "latest"
+        "@svgdotjs/svg.js": "latest",
+        "@resvg/resvg-js": "latest",
+        "svgdom": "latest"
     }
 }

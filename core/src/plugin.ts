@@ -5,6 +5,7 @@ import {getCallerStack, remove} from "@/utils";
 import {App} from "@/app";
 import {AppKey} from "@/constans";
 import {Dict} from "@/types";
+import path from 'path';
 export class Plugin extends EventEmitter {
     disposes: Function[] = []
     readonly filePath:string
@@ -56,6 +57,16 @@ export class Plugin extends EventEmitter {
         const method: 'push' | 'unshift' = before ? 'unshift' : 'push'
         this.middlewares[method](middleware)
         this.disposes.push(() => remove(this.middlewares, middleware))
+        return this
+    }
+    plugin(name:string){
+        const filePath=path.resolve(this.filePath,name)
+        this.app?.once('plugin-mounted',(p)=>{
+            this.disposes.push(()=>{
+                this.app?.unmount(p.name)
+            })
+        })
+        this.app?.mount(filePath)
         return this
     }
     using(...args:[...(keyof App.Services)[],(plugin:this)=>void]) {

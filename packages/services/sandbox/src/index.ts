@@ -1,5 +1,6 @@
-import { Dict, Plugin } from '52bot';
+import { Dict,axios, Plugin } from '52bot';
 import { Component } from '@/component';
+import {compiler} from '@/utils';
 
 declare module '52bot' {
   namespace App {
@@ -14,12 +15,12 @@ sandbox.service('components', Component.components);
 sandbox.service('defineComponent', Component.define);
 const disposeArr: Function[] = [];
 sandbox.mounted(() => {
-  const dispose = sandbox.app!.registerRender(async (template, message) => {
-    const createContext = (context = {}, parent: Component.Context,$root:string): Component.Context => {
+  const dispose = sandbox.app!.registerRender(async (template, $message) => {
+    const createContext = (runtime:Dict = {}, parent: Component.Context,$root:string): Component.Context => {
       return {
         $slots:{},
-        ...message,
-        ...context,
+        ...runtime,
+        $message:parent.$message,
         $root,
         parent,
         render: (template: string, context) => {
@@ -28,29 +29,32 @@ sandbox.mounted(() => {
       };
     };
     const renderWithRuntime=async (template:string,runtime:Dict,$root:string)=>{
+      const ctx=createContext(runtime,runtime as Component.Context,$root)
+      template=compiler(template,runtime)
       for (const [name, comp] of sandbox.components) {
         const match = comp.match(template);
         if(!match) continue
-        const ctx=createContext({...runtime},{} as Component.Context,$root)
         return await comp.render(match,ctx)
       }
       return template
     }
-    return await renderWithRuntime(template,{},template)
+    return await renderWithRuntime(template, { $message },template)
   });
   disposeArr.push(dispose);
 });
 sandbox.mounted(() => {
   sandbox.defineComponent({
     name: 'template',
-    props: {
-      $name: String,
-    },
-    render({ $name, ...props }, context) {
-      if (!$name) return context.children || '';
-      context.parent.$slots[$name] = async (p) => {
-        return await context.render(context.children || '', { ...context, ...p });
-      };
+    render(props, context) {
+      const keys=Object.keys(props)
+      if(!keys.length) keys.push('#default')
+      for(const key of Object.keys(props)){
+        if(key.startsWith('#')){
+          context.parent.$slots[key.slice(1)] = async (p) => {
+            return await context.render(context.children || '', { ...context, ...p });
+          };
+        }
+      }
       return '';
     },
   });
@@ -66,6 +70,33 @@ sandbox.mounted(() => {
       return context.children || '';
     },
   });
+  sandbox.defineComponent({
+    name:'request',
+    props:{
+      method:{
+        type:String,
+        default:'get'
+      },
+      url:String,
+      config:{
+        type:Object,
+        default(){
+          return {}
+        }
+      }
+    },
+    async render(props,context){
+      if(!props.url) throw new SyntaxError('url is required')
+      const result=await axios.default(props.url,{
+        method:props.method,
+        ...props.config
+      })
+      return context.render(context.children||'',{
+        ...context,
+        result:result.data,
+      } as Component.Context<{result:axios.AxiosResponse}>)
+    }
+  })
 });
 sandbox.beforeMount(() => {
   while (disposeArr.length) {

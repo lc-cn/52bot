@@ -1,5 +1,6 @@
 export * from './adapter'
 export * from './message'
+export * as axios from 'axios'
 export * from './types'
 export * from './utils'
 export * from './command'

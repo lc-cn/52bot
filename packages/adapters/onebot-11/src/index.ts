@@ -8,18 +8,21 @@ const oneBotV11 = new Adapter<OneBotV11, MessageEvent>('OneBotV11');
 const initBot = () => {
   if (!oneBotV11.app?.server)
     throw new Error('“oneBot V11 miss require service “http”, maybe you need install “ @52bot/plugin-http-server ”');
-  const [configs, isCreate] = loadYamlConfigOrCreate<OneBotV11Adapter.Config>('onebot-11.yaml', [
-    {
-      type: 'ws',
-      access_token: '',
-      ...OneBotV11.defaultConfig['ws'],
-    },
-    {
-      type: 'ws_reverse',
-      access_token: '',
-      ...OneBotV11.defaultConfig['ws_reverse'],
-    },
-  ]);
+  const [configs, isCreate] = loadYamlConfigOrCreate<OneBotV11Adapter.Config>(
+    'onebot-11.yaml',
+    JSON.stringify([
+      {
+        type: 'ws',
+        access_token: '',
+        ...OneBotV11.defaultConfig['ws'],
+      },
+      {
+        type: 'ws_reverse',
+        access_token: '',
+        ...OneBotV11.defaultConfig['ws_reverse'],
+      },
+    ],null,2)
+    );
   if (isCreate) {
     oneBotV11.app!.logger.info('请先完善onebot-11.yaml中的配置后继续');
     return process.exit();

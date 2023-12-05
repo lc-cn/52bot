@@ -1,4 +1,5 @@
-import { Dict } from '52bot';
+import { Dict, MessageBase } from '52bot';
+import { fixLoop, getValueWithRuntime } from '@/utils';
 export const CapWithChild=Symbol('CapWithChild')
 export const CapWithClose=Symbol('CapWithClose')
 export class Component<T = {}, D = {}, P = Component.Props<T>> {
@@ -8,7 +9,7 @@ export class Component<T = {}, D = {}, P = Component.Props<T>> {
 
   constructor(private $options: Component.Options<T, D, P>) {
     this.formatProps();
-    this[CapWithChild] = new RegExp(`<${$options.name}([^/>]*)?>([^<])*?</${$options.name}>`);
+    this[CapWithChild] = new RegExp(`<${$options.name}([^>]*)?>([^<])*?</${$options.name}>`);
     this[CapWithClose] = new RegExp(`<${$options.name}([^/>])*?/>`);
   }
   isClosing(template:string){
@@ -45,11 +46,13 @@ export class Component<T = {}, D = {}, P = Component.Props<T>> {
     const result=Object.fromEntries(this.$props.map((prop)=>{
       const generateDefault=typeof prop.default==='function'?prop.default:()=>prop.default
       return [prop.name,generateDefault()]
-    })) as P
-    const matchedArr=[...template.matchAll(/([\w$:]+)\s*=\s*(['"])(.*?)\2/g)].filter(Boolean)
+    }))
+    const matchedArr=[...template.matchAll(/([a-zA-Z\-:]+)\s*=\s*(['"])(.*?)\2/g)].filter(Boolean)
     if(!matchedArr.length) return result
     for(const [_,key,__,value] of matchedArr){
       Object.defineProperty(result,key,{
+        enumerable:true,
+        writable:false,
         value
       })
     }
@@ -63,17 +66,75 @@ export class Component<T = {}, D = {}, P = Component.Props<T>> {
   }
   async render(template:string,context:Component.Context):Promise<string> {
     const props=this.parseProps(template)
-    const data=this.$options.data?this.$options.data.apply(props):{} as D
+    const assignValue=()=>{
+      for (const key of keys) {
+        if (!key.startsWith(':'))
+          continue;
+        Object.defineProperty(props, key.slice(1), {
+          value: getValueWithRuntime(Reflect.get(props, key), context.parent)
+        });
+        Reflect.deleteProperty(props, key);
+      }
+    }
+    const keys=Object.keys(props).map(key=> {
+      const newKey = key.replace(/(\w)+-(\w)/g, function(_, char,later) {
+        return `${char}${later.toUpperCase()}`
+      });
+      if(key!==newKey){
+        Object.defineProperty(props,newKey,{
+          value:Reflect.get(props,key),
+          enumerable:true
+        })
+        Reflect.deleteProperty(props,key)
+      }
+      return newKey
+    })
+    assignValue()
+    const data=this.$options.data?this.$options.data.apply(props as P):{} as D
+    for(const key of keys){
+      if(key==='vFor') {
+        const {vFor:expression,'v-for':_,...rest}=props as any
+        const {name,value,...other}=fixLoop(expression)
+        const list=value==='__loop__'?other[value]:getValueWithRuntime(value,context)
+        const fnStr = `
+                const result=[];\n
+                for(const ${name} of list){\n
+                  result.push(render(props,{\n
+                    ...context,\n
+                    children:'',\n
+                    $origin:'${template.replace(/'/g,'\'')}',
+                    parent:{\n
+                      ...context.parent,\n
+                      ${name}:list[${name}]
+                    }\n
+                  }))\n
+                }
+                return result;`;
+        const fn = new Function('render,list,props,context', fnStr);
+        const newTpl=template.replace(`v-for="${expression}"`,'')
+          .replace(`v-for='${expression}'`,'')
+          .replace(`vFor="${expression}"`,'')
+          .replace(`vFor='${expression}'`,'')
+        return (await Promise.all(fn(this.render.bind(this),list,newTpl,context))).join('')
+
+      }
+      if(key==='vIf'){
+        const needRender=getValueWithRuntime(Reflect.get(props as object,'vIf'),context)
+        if(!needRender) return ''
+      }
+    }
     context.children=this.parseChildren(template)||context.children
-    const result=await this.$options.render(props,{
+    const ctx={
       $slots:context.$slots||{},
       ...props,
       ...data,
+      $message:context.$message,
       render:context.render,
       parent:context,
       children:context.children
-    } as Component.Context<D & P>)
-    context.$root=context.$root.replace(template,result)
+    } as Component.Context<D & P>
+    const result=await this.$options.render(props as P,ctx)
+    context.$root=context.$root.replace(context.$origin||template,result)
     return context.render(context.$root,context)
   }
 }
@@ -98,6 +159,8 @@ export namespace Component {
 
   export type Context<T = {}> = {
     $slots: Dict<Render<any, any>>
+    $message:MessageBase
+    $origin?:string
     $root:string
     parent:Context
     render(template:string,context:Context):Promise<string>

@@ -8,6 +8,7 @@ import {
   DirectMessageEvent,
   Sendable,
 } from 'qq-group-bot';
+import * as fs from 'fs';
 type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent;
 type QQAdapterConfig = QQConfig[];
 export type QQAdapter = typeof qq;
@@ -24,16 +25,9 @@ type QQConfig = {
   public?: boolean;
 };
 const initBot = () => {
-  const [configs, isCreate] = loadYamlConfigOrCreate<QQAdapterConfig>('qq.yaml', [
-    {
-      appid: '',
-      token: '',
-      secret: '',
-      private: false,
-      group: false,
-      public: false,
-    },
-  ]);
+  const [configs, isCreate] = loadYamlConfigOrCreate<QQAdapterConfig>('qq.yaml',
+    fs.readFileSync('./qq-default.yaml','utf8')
+  );
   if (isCreate) {
     qq.app!.logger.info('请先完善qq.yaml中的配置后继续');
     process.exit();
