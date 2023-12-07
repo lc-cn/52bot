@@ -1,5 +1,6 @@
 import { Dict, Plugin, segment } from '52bot';
 import '@52bot/plugin-sandbox'
+import path from 'path';
 const test=new Plugin('测试插件2')
 test.command('test-confirm')
   .action(async (runtime)=>{
@@ -92,8 +93,9 @@ test.mounted(()=>{
     }
   })
 })
-test.command('comp')
-  .action(()=>{
-    return `<test2><template><test :who='everyone' age="18"/></template></test2>`
+test.command('save')
+  .action(async ()=>{
+    const result=await test.upyun.uploadLocalFile('test.png',path.resolve(process.cwd(),'data','test.png'))
+    console.log(result)
   })
 export default test

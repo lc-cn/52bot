@@ -163,10 +163,7 @@ export class App extends EventEmitter {
         if (typeof plugin === 'string') {
             plugin = loadPlugin(plugin)
         }
-        if (!(plugin instanceof Plugin)) {
-            this.logger.warn(`${plugin} 不是一个有效的插件，将忽略其挂载。`)
-            return this
-        }
+        if (!(plugin instanceof Plugin))  return this.use(plugin)
         this.emit('plugin-beforeMount', plugin)
         this.plugins.set(plugin.name, plugin)
         plugin[AppKey] = this

@@ -8,7 +8,8 @@
         "build": "tsc && tsc-alias"
     },
     "files": [
-        "lib"
+        "lib",
+        "README.md"
     ],
     "author": "凉菜",
     "repository": {

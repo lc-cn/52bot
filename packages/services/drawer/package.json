@@ -13,7 +13,7 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/plugins/drawer"
+        "directory": "packages/services/drawer"
     },
     "dependencies": {
         "@types/svgdom": "latest",

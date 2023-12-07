@@ -15,6 +15,7 @@
         "@52bot/plugin-drawer": "workspace:latest",
         "@52bot/plugin-game": "workspace:latest",
         "@52bot/plugin-jsondb": "workspace:latest",
+        "@52bot/plugin-upyun": "workspace:latest",
         "@52bot/plugin-sandbox": "workspace:latest"
     }
 }

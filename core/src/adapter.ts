@@ -87,7 +87,7 @@ export namespace Adapter{
             } catch {}
             if(!result) continue
             result=result.default||result
-            if(!(result instanceof Adapter)) throw new Error(`${adapterPath} is not a adapter`)
+            if(!(result instanceof Adapter)) throw new Error(`${adapterPath} is not an adapter`)
             return result
         }
         throw new Error(`can't find adapter ${name}`)

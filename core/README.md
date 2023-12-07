@@ -3,9 +3,9 @@
 - 安装 & 初始化
 ```shell
 # 1. 安装依赖框架
-npm i 52bot # or yarn add 52bot
+yarn add 52bot # or pnpm add 52bot
 # 2. 安装适配器(目前已支持qq官方机器人和icqq)
-npm i @52bot/qq # 如果你需要使用 icqq , 可安装 @52bot/icqq
+yarn add @52bot/qq # 如果你需要使用 icqq , 可安装 @52bot/icqq
 # 2. 初始化配置文件
 npx 52bot init -m dev
 ```
