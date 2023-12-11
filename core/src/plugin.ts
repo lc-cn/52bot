@@ -6,7 +6,7 @@ import {App} from "@/app";
 import {AppKey} from "@/constans";
 import {Dict} from "@/types";
 import path from 'path';
-export class Plugin extends EventEmitter {
+export class Plugin<C=unknown> extends EventEmitter {
     disposes: Function[] = []
     readonly filePath:string
     private lifecycle:Dict<Function[]>={}
@@ -25,9 +25,9 @@ export class Plugin extends EventEmitter {
     get commandList() {
         return [...this.commands.values()]
     }
-    constructor(public name: string, config: Plugin.Config={}){
+    constructor(public name: string, options: Plugin.Options={}){
         super()
-        this.adapters=config.adapters
+        this.adapters=options.adapters
         const stack=getCallerStack()
         stack.shift() // 排除当前文件调用
         this.filePath=stack[0]?.getFileName()!;
@@ -189,7 +189,7 @@ export interface Plugin extends App.Services{
     removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>): this
 }
 export namespace Plugin {
-    export interface Config {
+    export interface Options {
         /**
          * 支持的适配器
          */
@@ -203,7 +203,7 @@ export namespace Plugin {
          */
         priority?: number
     }
-    export type Scope = 'private' | 'group' | 'guild'|'direct'
+    export type Config<T=unknown>=T extends Plugin<infer R>?R:T
     export type Status = 'enabled' | 'disabled'
     export enum StatusText{
         enabled='✅',

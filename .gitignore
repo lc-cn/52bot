@@ -5,4 +5,6 @@
 package-lock.json
 /test/.*.env
 /test/*.yaml
+test/*.config.js
+test/*.config.ts
 /test/data

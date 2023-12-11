@@ -74,28 +74,14 @@ export function trimQuote(str: string) {
     return str;
 }
 
-export function loadPlugin(name: string):Plugin {
-    const maybePath = [
-        path.resolve(__dirname, 'plugins', name),
-        path.resolve(process.cwd(), 'plugins', name),
-        `@52bot/plugin-${name}`,
-        `52bot-plugin-${name}`,
-        name
-    ]
-    for (const path of maybePath) {
-        try{
-            const result=require('jiti')(__filename)(path)
-            if(result.default) {
-                const {default:plugin,...other}=result
-                Object.assign(plugin,other)
-                return plugin
-            }
-            return result
-        }catch (e){
-            console.log(e)
-        }
+export function loadModule<T=unknown>(name: string):T {
+    const result=require('jiti')(__filename)(name)
+    if(result.default) {
+        const {default:plugin,...other}=result
+        Object.assign(plugin,other)
+        return plugin
     }
-    throw new Error(`加载插件(${name}) 失败`);
+    return result
 }
 
 export function getCallerStack(){

@@ -7,17 +7,20 @@ interface Message {
 }
 
 let buffer:any = null,timeStart: number;
-export function startBotWorker(entry: string, mode: string) {
+export function startAppWorker(config:string,mode: string) {
   const forkOptions: ForkOptions = {
     env: {
       ...process.env,
-      entry,
       mode,
+      config,
+      CWD:path.resolve(__dirname,'../')
     },
     execArgv: ["-r", "jiti/register", "-r", "tsconfig-paths/register"],
     stdio: "inherit",
   };
-  const cp = fork(path.resolve(__dirname,"../start.js"), [], forkOptions)
+  const cp = fork(path.resolve(__dirname,"../start.js"), [
+    '-p tsconfig.json'
+  ], forkOptions)
   cp.stdout?.on("data", data => process.stdout.push(data));
   cp.stderr?.on("data", data => process.stderr.push(data));
   process.stdin?.on("data", data => cp.stdin?.write(data));
@@ -31,13 +34,12 @@ export function startBotWorker(entry: string, mode: string) {
       buffer = message.body;
     }
   });
-  const closingCode = [0, 130, 137];
   cp.on("exit", code => {
     if(!code) return
     if (code!==51) {
       process.exit(code);
     }
     timeStart = new Date().getTime();
-    startBotWorker(entry,mode)
+    startAppWorker(config,mode)
   });
 }

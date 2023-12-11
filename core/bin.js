@@ -3,10 +3,9 @@
 "use strict";
 const path = require("path");
 const fs = require("fs");
-const jiti = require('jiti')(__dirname)
 const defaultArgv = {
 	mode: 'prod',
-	entry: 'lib',
+	config: 'bot.config.js',
 	init: false
 }
 const getValue = (list, key, defaultValue) => {
@@ -22,9 +21,9 @@ for (const key of args) {
 		case '-m':
 			defaultArgv.mode = getValue(args, key, defaultArgv.mode)
 			break
-		case '--entry':
-		case '-e':
-			defaultArgv.entry = getValue(args, key, defaultArgv.entry)
+		case '--config':
+		case '-c':
+			defaultArgv.config=getValue(args,key,defaultArgv.config)
 			break;
 		case 'init':
 			defaultArgv.init = true
@@ -39,4 +38,5 @@ if (defaultArgv.init) {
 	console.log(`请在.${defaultArgv.mode}.env中配置相应参数后再次调用\`npx 52bot -m ${defaultArgv.mode}\` 启动`)
 	process.exit(0)
 }
-jiti(path.resolve(__dirname, defaultArgv.entry)).startBotWorker(defaultArgv.entry, defaultArgv.mode)
+const jiti = require('jiti')(__dirname)
+jiti(path.resolve(__dirname, 'lib')).startAppWorker(path.resolve(process.cwd(),defaultArgv.config),defaultArgv.mode)

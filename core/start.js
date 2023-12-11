@@ -1,27 +1,60 @@
 const path = require("path");
+const fs = require('fs')
 const dotEnv=require('dotenv')
-let { mode = "", entry } = process.env;
-entry = path.resolve(__dirname, entry || "lib");
+const Yaml = require('yaml')
+const wrapExport=(filePath)=>{
+	const result=require(filePath)
+	if(result.default) {
+		const {default:main,...other}=result
+		return Object.assign(main,other)
+	}
+	return result
+}
+let { mode = "",config:configFile,...other } = process.env;
+const entry = path.resolve(__dirname, "lib");
 const {App} = require(entry)
 const envConfig=dotEnv.config({
 	path: path.join(process.cwd(),`.${mode}.env`)
 })
 if(envConfig.parsed){
-	const config=envConfig.parsed
-	config.logLevel=config.logLevel||"info"
-	const adapters=config.adapters?.split(',')||[]
+	const options=envConfig.parsed
+	options.logLevel=options.logLevel||"info"
 
-	const builtPlugins=config.builtPlugins?.split(',')||[]
-	const modulePlugins = config.modulePlugins?.split(',')||[]
-	const pluginDir=config.pluginDirs?.split(',')||[]
+	const adapters=options.adapters?.split(',')||[]
+
+	const builtPlugins=options.builtPlugins?.split(',')||[]
+	const modulePlugins = options.modulePlugins?.split(',')||[]
+	options.pluginDirs=(options.pluginDirs||'').split(',').filter(Boolean)
+	let config,existConfigFile=false;
+	if(fs.existsSync(configFile)){
+		existConfigFile=true
+		if(/\.[tj]s$/.test(configFile)) config=wrapExport(configFile)
+		else if(/\.y(a)?ml$/.test(configFile)) config=Yaml.parse(fs.readFileSync(configFile,'utf8'))
+		else throw new Error('unSupport config file type. (support: .js .ts .yaml .yml )')
+	}
+	if(typeof config==='function') config=config({mode,...other})
 	const app=new App({
-		...config,
+		...options,
+		...(existConfigFile?{configFile}:{}),
 		adapters
 	})
-	app.loadFromBuilt(builtPlugins)
-	app.loadFromModule(modulePlugins)
-	app.loadFromDir(...pluginDir)
-	app.start()
+	for(const plugin of [...builtPlugins,...modulePlugins]){
+		app.loadPlugin(plugin)
+	}
+	if(config){
+		let {plugins=[]}=config
+		if(!Array.isArray(plugins)) plugins=Object.entries(plugins.map(([name,enable])=>{
+			return {name,enable:enable!==false}
+		}))
+		for(let pluginInfo of plugins){
+			if(typeof pluginInfo==='string') pluginInfo={name:pluginInfo,enable:true}
+			app.loadPlugin(pluginInfo.name)
+			if(!pluginInfo.enable) app.disable(pluginInfo.name)
+		}
+	}
+	app.start().then(()=>{
+		app.logger.info(`load ${app.pluginList.length} plugins. (${app.pluginList.map(p=>p.name)})`)
+	})
 }else{
 	throw envConfig.error||new Error(`解析文件: .${mode}.env 失败`)
 }
