@@ -1,26 +1,29 @@
 import { Adapter, AdapterBot, AdapterReceive } from '@/adapter';
 import { Middleware } from '@/middleware';
+import { Bot } from '@/types';
+import { Message } from '@/message';
 
 export class Prompt<T extends Adapter>{
-  constructor(private adapter:T,private bot:AdapterBot<T>,private event:AdapterReceive<T>) {
+  constructor(private adapter:T,private bot:Bot<T>,private event:Message<T>) {
   }
-  private getChannelAddress<AD extends Adapter>(adapter:AD,bot:AdapterBot<AD>,event:AdapterReceive<AD>){
+  private getChannelAddress<AD extends Adapter>(adapter:AD,bot:Bot<AD>,event:Message<AD>){
     return `${adapter.name}-${bot.toString()}-${event.message_type}:${event.sender!.user_id}`
   }
   private prompt<T = unknown>(config:Prompt.Config){
-    return new Promise<T>((resolve) => {
+    return new Promise<T>((resolve,reject) => {
       this.event.reply(config.tips)
       this.middleware((input)=>{
         if(input instanceof Error){
           this.event.reply(input.message)
-          resolve(config.defaultValue)
+          if(config.defaultValue) resolve(config.defaultValue)
+          else reject(input)
           return
         }
         resolve(config.format(input))
-      },config.timeout)
+      },config.timeout,config.timeoutText)
     })
   }
-  middleware(callback:(input:string|Error)=>any,timeout:number=3*60*1000){
+  middleware(callback:(input:string|Error)=>any,timeout:number=3*60*1000,timeoutText='输入超时'){
     const middleware:Middleware=(adapter,bot,event,next)=>{
       if(this.getChannelAddress(adapter,bot,event)!==this.getChannelAddress(this.adapter,this.bot,this.event)) return next()
       callback(event.raw_message)
@@ -30,39 +33,52 @@ export class Prompt<T extends Adapter>{
     const dispose=this.adapter.app!.middleware(middleware)
     const timer=setTimeout(()=>{
       dispose()
-      callback(new Error('输入超时'))
+      callback(new Error(timeoutText))
     },timeout)
   }
-  async text(tips:string,timeout?:number,defaultValue=''):Promise<string>{
+  async text(tips:string,timeout?:number,defaultValue='',timeoutText?:string):Promise<string>{
     return this.prompt<string>({
       tips,
       defaultValue,
+      timeoutText,
       timeout,
       format:(input:string)=>input
     })
   }
-  async number(tips:string,timeout?:number,defaultValue=0):Promise<number>{
+  async any(tips:string,timeout?:number,defaultValue='',timeoutText?:string){
+    return this.prompt<string>({
+      tips,
+      defaultValue,
+      timeoutText,
+      timeout,
+      format:(input:string)=>input
+    })
+  }
+  async number(tips:string,timeout?:number,defaultValue=0,timeoutText?:string):Promise<number>{
     return this.prompt<number>({
       tips,
       defaultValue,
+      timeoutText,
       timeout,
       format:(input:string)=>+input
     })
   }
-  async confirm(tips:string,condition:string='yes',timeout?:number,defaultValue=false):Promise<boolean>{
+  async confirm(tips:string,condition:string='yes',timeout?:number,defaultValue=false,timeoutText?:string):Promise<boolean>{
     return this.prompt<boolean>({
       tips:`${tips}\n输入“${condition}”以确认`,
       defaultValue,
       timeout,
+      timeoutText,
       format:(input:string)=>input===condition
     })
   }
-  async list<T extends Prompt.SingleType='text'>(tips:string,config:Prompt.ListConfig<T>={type:'text' as T}):Promise<Prompt.Result<T>[]>{
+  async list<T extends Prompt.SingleType='text'>(tips:string,config:Prompt.ListConfig<T>={type:'text' as T},timeoutText?:string):Promise<Prompt.Result<T>[]>{
     const separator=config.separator||','
     return this.prompt<Prompt.Result<T>[]>({
       tips:`${tips}\n值之间使用“${separator}”分隔`,
       defaultValue:config.defaultValue||[],
       timeout:config.timeout,
+      timeoutText,
       format:(input:string)=>input.split(separator).map(v=>{
         switch (config.type){
           case 'boolean':
@@ -75,7 +91,7 @@ export class Prompt<T extends Adapter>{
       })
     })
   }
-  async pick<T extends Prompt.SingleType,M extends boolean=false>(tips:string,config:Prompt.PickConfig<T,M>):Promise<Prompt.PickResult<T,M>>{
+  async pick<T extends Prompt.SingleType,M extends boolean=false>(tips:string,config:Prompt.PickConfig<T,M>,timeoutText?:string):Promise<Prompt.PickResult<T,M>>{
     const moreTextArr=config.options.map((o,idx)=>{
       return `${idx+1}.${o.label}`
     })
@@ -85,6 +101,7 @@ export class Prompt<T extends Adapter>{
       tips:`${tips}\n${moreTextArr.join('\n')}`,
       defaultValue:config.defaultValue,
       timeout:config.timeout,
+      timeoutText,
       format:(input:string)=>{
         if(!config.multiple) return config.options.find((o,idx)=>{
           return idx===(+input)
@@ -129,6 +146,7 @@ export namespace Prompt{
     tips:string
     defaultValue:any
     timeout?:number
+    timeoutText?:string
     format:(input:string)=>any
   }
 }

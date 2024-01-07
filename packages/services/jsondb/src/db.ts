@@ -8,9 +8,7 @@ export class JsonDB{
     const dir=path.dirname(this.filePath)
     if(fs.existsSync(dir)) fs.mkdirSync(dir,{recursive:true})
     if(!this.filePath.endsWith('.jsondb')) this.filePath=this.filePath+'.jsondb'
-    if(!fs.existsSync(this.filePath)) fs.writeFileSync(
-      this.filePath, stringifyObj(this.data), 'binary'
-    )
+    if(!fs.existsSync(this.filePath)) this.write()
     this.init()
   }
   private init(){
@@ -18,17 +16,22 @@ export class JsonDB{
   }
   private write(){
     fs.writeFileSync(
-      this.filePath,
-      Buffer.from(stringifyObj(this.data)),
-      'binary'
+      this.filePath, stringifyObj(this.data), 'utf8'
     )
   }
   private read(){
-    this.data=parseObjFromStr(fs.readFileSync(this.filePath,'binary'))
+    this.data=parseObjFromStr(fs.readFileSync(this.filePath,'utf8'))
+  }
+  findIndex<T>(route:string,predicate:(value:T,index:number,obj:T[])=>unknown){
+    const arr=this.getArray<T>(route)
+    return arr.findIndex(predicate)
+  }
+  indexOf<T>(route:string,item:T){
+    return this.findIndex<T>(route,(value)=>value===item)
   }
   get<T>(route:string,initialValue?:T):T|undefined{
     this.read()
-    const parentPath=route.split('.')
+    const parentPath=route.split('.').filter(p=>p.length)
     const key=parentPath.pop()
     if(!key) return this.data as T
     let temp:Dict=this.data
@@ -37,7 +40,7 @@ export class JsonDB{
       if(!Reflect.has(temp,currentKey)) Reflect.set(temp,key,{})
       temp=Reflect.get(temp,currentKey)
     }
-    if(!temp[key]!==undefined) return temp[key]
+    if(temp[key]!==undefined) return temp[key]
     temp[key]=initialValue
     this.write()
     return initialValue
@@ -93,7 +96,7 @@ export class JsonDB{
     this.write()
     return result
   }
-  splice<T>(route:string,index:number=0,deleteCount:number=0,data:T[]=[]):T[]{
+  splice<T>(route:string,index:number=0,deleteCount:number=0,...data:T[]):T[]{
     const arr=this.getArray<T>(route)
     const result=arr.splice(index,deleteCount,...data)
     this.write()

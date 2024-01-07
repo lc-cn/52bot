@@ -1,10 +1,11 @@
 {
-    "name": "@52bot/qq",
+    "name": "@52bot/plugin-schedule",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.10",
+    "version": "0.0.1",
+
     "scripts": {
-        "build": "tsc && tsc-alias && cp src/qq-default.yaml lib/qq-default.yaml"
+        "build": "tsc && tsc-alias"
     },
     "files": [
         "lib"
@@ -12,13 +13,14 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/adapters/qq"
+        "directory": "packages/plugins/schedule"
     },
     "dependencies": {
         "52bot": "workspace:latest",
-        "qq-group-bot": "^1.0.7"
+        "node-cron": "^3.0.3",
+        "@52bot/plugin-jsondb": "latest"
     },
-    "peerDependencies": {
-        "52bot": "workspace:latest"
+    "devDependencies": {
+        "@types/node-cron": "^3.0.11"
     }
 }

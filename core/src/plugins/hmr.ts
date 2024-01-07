@@ -12,9 +12,10 @@ HMR.unmounted(()=>{
 HMR.mounted(()=>{
     const app=HMR.app!
     const watchDirs = [ // 只监听本地插件和内置插件的变更，模块的管不了
-        ...(app.config.pluginDirs||[]),// 本地目录插件
+        ...(app.config.pluginDirs||[]).map(dir=>{
+            return path.join(process.cwd(),dir)
+        }),// 本地目录插件
         __dirname, // 内置插件
-        path.resolve(__dirname, '../adapters'),
         app.config.configFile?app.config.configFile:'', // 配置文件
         path.join(process.cwd(), `.${process.env.mode}.env`), // 环境变量
     ].filter(Boolean)

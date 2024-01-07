@@ -1,5 +1,5 @@
-import { MessageElem, Sendable } from 'qq-group-bot';
-import { unwrap } from '52bot';
+import {Sendable, MessageElem, TextElem} from 'node-dd-bot';
+import {trimQuote, unwrap} from '52bot';
 export function sendableToString(message: Sendable) {
   let result = '';
   if (!Array.isArray(message)) message = [message as any];
@@ -10,7 +10,7 @@ export function sendableToString(message: Sendable) {
     }
     const { type, ...data } = item;
     if (type === 'text') {
-      result += item['text'];
+      result += (item as TextElem)['text'];
       continue;
     }
     const attrs = Object.entries(data).map(([key, value]) => {
@@ -23,7 +23,7 @@ export function sendableToString(message: Sendable) {
 function parseFromTemplate(template: string | MessageElem): MessageElem[] {
   if (typeof template !== 'string') return [template];
   const result: MessageElem[] = [];
-  const reg = /(<[^:>]+>)/;
+  const reg = /(<[^>]+>)/;
   while (template.length) {
     const [match] = template.match(reg) || [];
     if (!match) break;
@@ -36,16 +36,27 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
       });
     template = template.slice(index + match.length);
     const [type, ...attrArr] = match.slice(1, -1).split(',');
-    const attrs = Object.fromEntries(
-      attrArr.map((attr: string) => {
+    if(!['image','text','face','button','markdown','action','link','at','audio','video','file'].includes(type)){
+      result.push({
+        type:'text',
+        text:match
+      })
+    }else{
+      const attrs = Object.fromEntries(attrArr.map((attr) => {
         const [key, ...values] = attr.split('=');
-        return [key, JSON.parse(unwrap(values.join('=')))];
-      }),
-    );
-    result.push({
-      type: type as MessageElem['type'],
-      ...attrs,
-    } as MessageElem);
+        let value
+        try{
+          value=JSON.parse(unwrap(values.join('=')))
+        }catch {
+          value=trimQuote(unwrap(values.join('=')))
+        }
+        return [key, value];
+      }));
+      result.push({
+        type: type,
+        ...attrs,
+      } as MessageElem);
+    }
   }
   if (template.length) {
     result.push({
@@ -54,13 +65,6 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
     });
   }
   return result;
-}
-export function splitMessageElem(message:MessageElem[]){
-  return {
-    music:null,
-    share:null,
-    messageList:message
-  }
 }
 export function formatSendable(message: Sendable) {
   const result: MessageElem[] = [];
@@ -72,10 +76,5 @@ export function formatSendable(message: Sendable) {
       result.push(...parseFromTemplate(item));
     }
   }
-  const {
-    music,
-    share,
-    messageList,
-  }= splitMessageElem(result)
   return result as Sendable;
 }

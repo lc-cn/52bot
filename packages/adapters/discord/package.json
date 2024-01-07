@@ -1,10 +1,10 @@
 {
-    "name": "@52bot/qq",
+    "name": "@52bot/discord",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.10",
+    "version": "0.0.1",
     "scripts": {
-        "build": "tsc && tsc-alias && cp src/qq-default.yaml lib/qq-default.yaml"
+        "build": "tsc && tsc-alias"
     },
     "files": [
         "lib"
@@ -12,13 +12,14 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/adapters/qq"
+        "directory": "packages/adapters/discord"
     },
     "dependencies": {
         "52bot": "workspace:latest",
-        "qq-group-bot": "^1.0.7"
+        "ts-disc-bot": "latest"
     },
-    "peerDependencies": {
-        "52bot": "workspace:latest"
+    "devDependencies": {
+        "@types/node": "latest",
+        "@types/ws": "latest"
     }
 }

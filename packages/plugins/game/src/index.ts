@@ -1,4 +1,4 @@
-import '@52bot/plugin-drawer'
+import type {} from '@52bot/plugin-drawer'
 import { Plugin } from '52bot';
 import * as fs from 'fs';
 import * as path from 'path';

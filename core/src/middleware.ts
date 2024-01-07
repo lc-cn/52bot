@@ -1,4 +1,6 @@
 import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
+import { Bot } from '@/types';
+import { Message } from '@/message';
 
 type Next = () => Promise<any | null>;
 export type Middleware<AD extends Adapter=Adapter> = Compose.Middleware<AD>;
@@ -9,9 +11,9 @@ export namespace Middleware {
             if (typeof fn !== "function")
                 throw new TypeError("Middleware must be composed of functions!");
         }
-        return (adapter:AD,bot:AdapterBot<AD>,event:AdapterReceive<AD>, next?: Next) => {
+        return (adapter:AD,bot:Bot<AD>,event:Message<AD>, next?: Next) => {
             let index = -1;
-            const dispatch: (i: number, ctx?: AdapterReceive<AD>) => (Promise<any>) = (i:number, ctx:AdapterReceive<AD> = event) => {
+            const dispatch: (i: number, ctx?: Message<AD>) => (Promise<any>) = (i:number, ctx:Message<AD> = event) => {
                 if (i <= index) return Promise.reject(new Error("next() called multiple times"));
                 index = i;
                 let fn:Middleware<AD>|undefined = middlewares[i];
@@ -28,6 +30,6 @@ export namespace Middleware {
     }
 }
 export namespace Compose {
-    export type Middleware<AD extends Adapter> = (adapter:AD,bot:AdapterBot<AD>,event:AdapterReceive<AD>, next: Next) => any;
-    export type ComposedMiddleware<AD extends Adapter>  = (adapter:AD,bot:AdapterBot<AD>,event:AdapterReceive<AD>, next?: Next) => Promise<void>;
+    export type Middleware<AD extends Adapter> = (adapter:AD,bot:Bot<AD>,event:Message<AD>, next: Next) => any;
+    export type ComposedMiddleware<AD extends Adapter>  = (adapter:AD,bot:Bot<AD>,event:Message<AD>, next?: Next) => Promise<void>;
 }

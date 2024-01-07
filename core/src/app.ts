@@ -2,13 +2,14 @@ import { EventEmitter } from 'events';
 import { Logger, getLogger } from 'log4js';
 import { Middleware } from '@/middleware';
 import { Plugin, PluginMap } from '@/plugin';
-import { Dict, LogLevel } from '@/types';
+import { Bot, Dict, LogLevel } from '@/types';
 import { loadModule, remove } from '@/utils';
-import { AppKey } from '@/constans';
+import { AppKey, Required } from '@/constans';
 import path from 'path';
 import { Adapter, AdapterBot, AdapterReceive } from '@/adapter';
-import { MessageBase, Render } from '@/message';
+import { Message } from '@/message';
 import * as process from 'process';
+import { Prompt } from '@/prompt';
 export function defineConfig(config:App.Config):App.Config
 export function defineConfig(initialFn:(env:typeof process.env & {mode:string})=>App.Config):(env:typeof process.env & {mode:string})=>App.Config
 export function defineConfig(config:App.Config|((env:typeof process.env & {mode:string})=>App.Config)){
@@ -19,7 +20,7 @@ export class App extends EventEmitter {
   adapters: Map<string, Adapter> = new Map<string, Adapter>();
   middlewares: Middleware[] = [];
   plugins: PluginMap = new PluginMap();
-  renders: Render[] = [];
+  renders: Message.Render[] = [];
 
   constructor(public config: App.Options) {
     super();
@@ -34,12 +35,12 @@ export class App extends EventEmitter {
     });
   }
 
-  registerRender(render: Render) {
+  registerRender(render: Message.Render) {
     this.renders.push(render);
     return () => remove(this.renders, render);
   }
 
-  async renderMessage<T extends MessageBase = MessageBase>(template: string, message: T) {
+  async renderMessage<T extends Message = Message>(template: string, message?: T) {
     for (const render of this.renders) {
       try {
         template = await render(template, message);
@@ -93,7 +94,7 @@ export class App extends EventEmitter {
     return this.commandList.find(command => command.name === name);
   }
 
-  getSupportMiddlewares<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>): Middleware[] {
+  getSupportMiddlewares<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: Message<A>): Middleware[] {
     return this.pluginList.filter(plugin => !plugin.adapters || plugin.adapters.includes(adapter.name))
       .reduce((result, plugin) => {
         result.push(...plugin.middlewares);
@@ -101,12 +102,12 @@ export class App extends EventEmitter {
       }, [...this.middlewares]);
   }
 
-  getSupportCommands<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
+  getSupportCommands<A extends Adapter>(adapter: A, bot: Bot<A>, event: Message<A>) {
     return this.pluginList.filter(plugin => !plugin.adapters || plugin.adapters.includes(adapter.name))
       .flatMap(plugin => plugin.commandList);
   }
 
-  handleMessage<A extends Adapter>(adapter: A, bot: AdapterBot<A>, event: AdapterReceive<A>) {
+  handleMessage<A extends Adapter>(adapter: A, bot: Adapter.Bot<AdapterBot<A>>, event: Message<A>) {
     const middleware = Middleware.compose(this.getSupportMiddlewares(adapter, bot, event));
     middleware(adapter, bot, event);
   }
@@ -162,8 +163,8 @@ export class App extends EventEmitter {
     try {
       initFn(plugin);
       return this;
-    } catch {
-      this.logger.error(`插件：${name} 初始化失败`);
+    } catch (e) {
+      this.logger.error(`插件：${name} 初始化失败`,e);
       return this.unmount(plugin);
     }
   }
@@ -178,11 +179,34 @@ export class App extends EventEmitter {
     this.emit('plugin-beforeMount', plugin);
     this.plugins.set(plugin.name, plugin);
     plugin[AppKey] = this;
-    for (const [name, service] of plugin.services) {
-      this.emit('service-register', name, service);
+    plugin.mounted(()=>{
+      for (const [name, service] of (plugin as Plugin).services) {
+        this.emit('service-register', name, service);
+      }
+      this.logger.info(`插件：${ (plugin as Plugin).name} 已加载。`);
+    })
+    if(plugin[Required].length){
+      const requiredServices=plugin[Required]
+      const mountFn=()=>{
+        if(requiredServices.every(s=>{
+          return !!this[s]
+        })) this.emit('plugin-mounted',plugin)
+      }
+      const serviceDestroyListener=(name:string)=>{
+        if(requiredServices.some(s=>{
+          return name===s
+        })) this.emit('plugin-beforeUnmount',plugin)
+      }
+      this.on('service-register',mountFn)
+      this.on('service-destroy',serviceDestroyListener)
+      plugin.beforeUnmount(()=>{
+        this.off('service-register',mountFn)
+        this.off('service-destroy',serviceDestroyListener)
+      })
+      mountFn()
+    }else{
+      this.emit('plugin-mounted', plugin);
     }
-    this.emit('plugin-mounted', plugin);
-    this.logger.info(`插件：${plugin.name} 已加载。`);
     return this;
   }
 
@@ -226,20 +250,20 @@ export class App extends EventEmitter {
         return path.resolve(process.cwd(),dir,name)
       }), // 用户自己的插件
       path.resolve(__dirname,'plugins',name), // 内置插件
-      path.resolve(process.cwd(),'node_modules',name),
-      name
+      path.resolve(process.cwd(),'node_modules',name) //社区插件
     ];
-    let loaded:boolean=false;
+    let loaded:boolean=false,error:unknown;
     for(const loadPath of maybePath){
       if(loaded) break;
       try{
         this.mount(loadPath)
         loaded=true
-      }catch {
+      }catch (e){
+        error=e
         this.logger.debug(`try load plugin(${name}) failed. (from: ${loadPath})`)
       }
     }
-    if(!loaded) this.logger.warn(`load plugin "${name}" failed`)
+    if(!loaded) this.logger.warn(`load plugin "${name}" failed`,error)
     return this
   }
 

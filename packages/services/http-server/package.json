@@ -7,7 +7,9 @@
         "build": "tsc && tsc-alias"
     },
     "files": [
-        "lib"
+        "lib",
+        "dist",
+        "client"
     ],
     "author": "凉菜",
     "repository": {
@@ -17,6 +19,7 @@
     "dependencies": {
         "52bot": "workspace:latest",
         "koa": "latest",
+        "koa-basic-auth":"latest",
         "@koa/router": "latest",
         "koa-bodyparser": "latest",
         "ws": "latest"
@@ -24,6 +27,7 @@
     "devDependencies": {
         "@types/koa": "latest",
         "@types/koa-bodyparser": "latest",
+        "@types/koa-basic-auth": "latest",
         "@types/koa__router": "latest",
         "@types/ws": "latest"
     }

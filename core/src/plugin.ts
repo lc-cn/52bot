@@ -3,12 +3,13 @@ import { EventEmitter } from "events";
 import { Middleware } from "@/middleware";
 import {getCallerStack, remove} from "@/utils";
 import {App} from "@/app";
-import {AppKey} from "@/constans";
-import {Dict} from "@/types";
+import { AppKey, Required } from '@/constans';
+import { Dict, NumString } from '@/types';
 import path from 'path';
-export class Plugin<C=unknown> extends EventEmitter {
-    disposes: Function[] = []
-    readonly filePath:string
+export class Plugin extends EventEmitter {
+    disposes: Function[] = [];
+    [Required]:(keyof App.Services)[]=[];
+    readonly filePath:string;
     private lifecycle:Dict<Function[]>={}
     public adapters?: string[]
     status: Plugin.Status = 'enabled'
@@ -37,6 +38,9 @@ export class Plugin<C=unknown> extends EventEmitter {
                 return Reflect.get(target.app.services,key)
             }
         })
+    }
+    required<T extends keyof App.Services>(...services:(keyof App.Services)[]){
+        this[Required].push(...services)
     }
     service<T extends keyof App.Services>(name:T): App.Services[T]
     service<T extends keyof App.Services>(name:T, service:App.Services[T]): this
@@ -67,26 +71,6 @@ export class Plugin<C=unknown> extends EventEmitter {
             })
         })
         this.app?.mount(filePath)
-        return this
-    }
-    using(...args:[...(keyof App.Services)[],(plugin:this)=>void]) {
-        const callback=args.pop()
-        const services=[...args] as (keyof App.Services)[]
-        if(typeof callback!=='function') throw new Error('callback 必须是函数')
-        if(!services.length){
-            callback(this)
-            return this
-        }
-        const installFn=()=>{
-            const servicesHasReady=services.every(name=>{
-                return !!this[name]
-            })
-            if(servicesHasReady){
-                callback(this)
-                this.app!.off('service-register',installFn)
-            }
-        }
-        this.app!.on('service-register',installFn)
         return this
     }
     // @ts-ignore
@@ -203,7 +187,6 @@ export namespace Plugin {
          */
         priority?: number
     }
-    export type Config<T=unknown>=T extends Plugin<infer R>?R:T
     export type Status = 'enabled' | 'disabled'
     export enum StatusText{
         enabled='✅',

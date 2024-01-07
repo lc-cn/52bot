@@ -72,5 +72,5 @@ export function stringifyObj(value:any):string{
     }
   }
   _stringify(value,[])
-  return JSON.stringify(result)
+  return JSON.stringify(result,null,2)
 }

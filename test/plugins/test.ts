@@ -1,6 +1,5 @@
-import { Dict, Plugin, segment } from '52bot';
+import { Plugin, segment } from '52bot';
 import '@52bot/plugin-sandbox'
-import path from 'path';
 const test=new Plugin('测试插件2')
 test.command('test-confirm')
   .action(async (runtime)=>{
@@ -93,9 +92,70 @@ test.mounted(()=>{
     }
   })
 })
-test.command('save')
+test.command('notice')
   .action(async ()=>{
-    const result=await test.upyun.uploadLocalFile('test.png',path.resolve(process.cwd(),'data','test.png'))
-    console.log(result)
+    return segment('markdown',{
+      custom_template_id:'102005927_1702364737',
+      params:[
+        {
+          key:'title',
+          values:'52bot@0.0.1更新通知'
+        },
+        {
+          key:'desc1',
+          values:"添加指令解析能力"
+        },
+        {
+          key:'desc2',
+          values:"增加内置插件commandParser"
+        },
+        {
+          key:'desc3',
+          values:"增加内置插件echo"
+        },
+        {
+          key:'desc4',
+          values:"增加内置插件pluginPlugin"
+        },
+        {
+          key:'desc5',
+          values:"添加中间件能力"
+        },
+        {
+          key:'text',
+          values:'了解详情'
+        },
+        {
+          key:'link',
+          values:'https://github.com/lc-cn/52bot'
+        }
+      ]
+    })
+  })
+test.command('btn')
+  .action(async ()=>{
+    return segment('markdown',{
+      custom_template_id:'102005927_1704250658',
+      params:[
+        {
+          key:'title',
+          values:"帮助"
+        },
+        {
+          key:'cmd1',
+          values:encodeURI('插件管理')
+        },
+        {
+          key:'cmd2',
+          values:encodeURI('问答管理')
+        },
+        {
+          key:'cmd3',
+          values:encodeURI('一言')
+        }
+      ]
+    })+segment('keyboard',{
+      id:'102005927_1702366046'
+    })
   })
 export default test

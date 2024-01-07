@@ -1,6 +1,5 @@
 import * as path from "path";
 import * as fs from "fs";
-import {Plugin} from "@/plugin";
 import YAML from "yaml";
 
 
@@ -127,4 +126,8 @@ export function loadYamlConfigOrCreate<T>(name:string,defaultValue:string):[T,bo
     }
     const fileData=fs.readFileSync(filePath,'utf8')
     return [YAML.parse(fileData),needCreate]
+}
+export function saveYamlConfig<T>(name:string,config:T){
+    const filePath=path.resolve(process.cwd(),name)
+    fs.writeFileSync(filePath,YAML.stringify(config))
 }

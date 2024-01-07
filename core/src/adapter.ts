@@ -1,15 +1,14 @@
 import { App } from '@/app';
 import { EventEmitter } from 'events';
-import { MessageBase } from '@/message';
+import { Message } from '@/message';
 import path from 'path';
 import * as process from 'process';
 import { getLogger, Logger } from 'log4js';
 
 export type AdapterBot<A extends Adapter> = A extends Adapter<infer B> ? B : unknown
 export type AdapterReceive<A extends Adapter> = A extends Adapter<infer B, infer R> ? R : unknown
-
-export class Adapter<T = object, R = MessageBase> extends EventEmitter {
-  bots: T[] = [];
+export class Adapter<I extends object= object,M = {}> extends EventEmitter {
+  bots: Adapter.Bot<I>[] = [];
   app: App | null = null;
   private _logger?:Logger
   get logger(){
@@ -18,14 +17,21 @@ export class Adapter<T = object, R = MessageBase> extends EventEmitter {
   constructor(public name: string) {
     super();
   }
-
+  async sendMsg(bot_id: string, target_id: string, target_type: string,message:string,source?:Message<Adapter<I,M>>):Promise<any>{}
+  define<T extends keyof Adapter<I,M>>(name:T,value:Adapter<I,M>[T]):void{
+    Object.defineProperty(this,name,{value,writable:false,enumerable:false})
+  }
+  pick(bot_id:string){
+    const bot=this.bots.find(bot=>bot.unique_id===bot_id)
+    if(!bot) throw new Error(`未找到Bot:${bot_id}`)
+    return bot
+  }
   mount(app: App) {
     this.emit('before-mount');
     this.logger.level=app.config.logLevel
     this.app = app;
     this.emit('mounted');
   }
-
   unmount() {
     this.emit('before-unmount');
     this.app = null;
@@ -75,6 +81,10 @@ export namespace Adapter{
         'unmounted'():void
         'start'():void
     }
+    export type SendMsgFn=(bot_id:string,target_id:string,target_type:Message.Type,message:string)=>Promise<any>
+    export type Bot<T=object> = {
+      unique_id:string
+    } & T
     export function load(name:string){
         const maybePath=[
             path.join(process.cwd(),'node_modules',`@52bot`,name),// 官方适配器

@@ -22,8 +22,6 @@ if(envConfig.parsed){
 
 	const adapters=options.adapters?.split(',')||[]
 
-	const builtPlugins=options.builtPlugins?.split(',')||[]
-	const modulePlugins = options.modulePlugins?.split(',')||[]
 	options.pluginDirs=(options.pluginDirs||'').split(',').filter(Boolean)
 	let config,existConfigFile=false;
 	if(fs.existsSync(configFile)){
@@ -38,9 +36,7 @@ if(envConfig.parsed){
 		...(existConfigFile?{configFile}:{}),
 		adapters
 	})
-	for(const plugin of [...builtPlugins,...modulePlugins]){
-		app.loadPlugin(plugin)
-	}
+	const configPlugins=[]
 	if(config){
 		let {plugins=[]}=config
 		if(!Array.isArray(plugins)) plugins=Object.entries(plugins.map(([name,enable])=>{
@@ -48,11 +44,19 @@ if(envConfig.parsed){
 		}))
 		for(let pluginInfo of plugins){
 			if(typeof pluginInfo==='string') pluginInfo={name:pluginInfo,enable:true}
-			app.loadPlugin(pluginInfo.name)
-			if(!pluginInfo.enable) app.disable(pluginInfo.name)
+			configPlugins.push(pluginInfo)
 		}
 	}
 	app.start().then(()=>{
+		const builtPlugins=options.builtPlugins?.split(',')||[]
+		const modulePlugins = options.modulePlugins?.split(',')||[]
+		for(const plugin of [...builtPlugins,...modulePlugins]){
+			app.loadPlugin(plugin)
+		}
+		for(const pluginInfo of configPlugins){
+			app.loadPlugin(pluginInfo.name)
+			if(!pluginInfo.enable) app.disable(pluginInfo.name)
+		}
 		app.logger.info(`load ${app.pluginList.length} plugins. (${app.pluginList.map(p=>p.name)})`)
 	})
 }else{

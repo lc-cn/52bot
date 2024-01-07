@@ -1,4 +1,4 @@
-import { Dict, MessageBase } from '52bot';
+import { Dict, Message } from '52bot';
 import { fixLoop, getValueWithRuntime } from '@/utils';
 export const CapWithChild=Symbol('CapWithChild')
 export const CapWithClose=Symbol('CapWithClose')
@@ -159,7 +159,7 @@ export namespace Component {
 
   export type Context<T = {}> = {
     $slots: Dict<Render<any, any>>
-    $message:MessageBase
+    $message?:Message
     $origin?:string
     $root:string
     parent:Context

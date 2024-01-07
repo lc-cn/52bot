@@ -1,5 +1,12 @@
-import { MessageElem, Sendable } from 'qq-group-bot';
+import {Sendable, MessageElem, TextElem} from 'ts-disc-bot';
 import { unwrap } from '52bot';
+export const toObject = <T = any>(data: any) => {
+  if (Buffer.isBuffer(data)) return JSON.parse(data.toString()) as T;
+  if (typeof data === 'object') return data as T;
+  if (typeof data === 'string') return JSON.parse(data) as T;
+  // return String(data);
+};
+
 export function sendableToString(message: Sendable) {
   let result = '';
   if (!Array.isArray(message)) message = [message as any];
@@ -10,7 +17,7 @@ export function sendableToString(message: Sendable) {
     }
     const { type, ...data } = item;
     if (type === 'text') {
-      result += item['text'];
+      result += (item as TextElem)['text'];
       continue;
     }
     const attrs = Object.entries(data).map(([key, value]) => {
@@ -23,7 +30,7 @@ export function sendableToString(message: Sendable) {
 function parseFromTemplate(template: string | MessageElem): MessageElem[] {
   if (typeof template !== 'string') return [template];
   const result: MessageElem[] = [];
-  const reg = /(<[^:>]+>)/;
+  const reg = /(<[^>:]+>)/;
   while (template.length) {
     const [match] = template.match(reg) || [];
     if (!match) break;
@@ -37,10 +44,10 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
     template = template.slice(index + match.length);
     const [type, ...attrArr] = match.slice(1, -1).split(',');
     const attrs = Object.fromEntries(
-      attrArr.map((attr: string) => {
-        const [key, ...values] = attr.split('=');
-        return [key, JSON.parse(unwrap(values.join('=')))];
-      }),
+        attrArr.map((attr: string) => {
+          const [key, ...values] = attr.split('=');
+          return [key, JSON.parse(unwrap(values.join('=')))];
+        }),
     );
     result.push({
       type: type as MessageElem['type'],
@@ -55,13 +62,6 @@ function parseFromTemplate(template: string | MessageElem): MessageElem[] {
   }
   return result;
 }
-export function splitMessageElem(message:MessageElem[]){
-  return {
-    music:null,
-    share:null,
-    messageList:message
-  }
-}
 export function formatSendable(message: Sendable) {
   const result: MessageElem[] = [];
   if (!Array.isArray(message)) message = [message as any];
@@ -72,10 +72,5 @@ export function formatSendable(message: Sendable) {
       result.push(...parseFromTemplate(item));
     }
   }
-  const {
-    music,
-    share,
-    messageList,
-  }= splitMessageElem(result)
   return result as Sendable;
 }

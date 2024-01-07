@@ -1,7 +1,7 @@
 import {deepClone, findLastIndex, isEmpty, trimQuote} from "@/utils";
-import {Dict} from "@/types";
-import {Adapter, AdapterBot, AdapterReceive} from "@/adapter";
-import { Segment } from '@/message';
+import { Bot, Dict } from '@/types';
+import {Adapter} from "@/adapter";
+import { Message } from '@/message';
 import { Prompt } from '@/prompt';
 
 type Argv = {
@@ -81,7 +81,7 @@ export class Command<A extends any[] = [], O = {}> {
     private callbacks: Command.CallBack<Adapter, A, O>[] = [];
     private checkers: Command.CallBack<Adapter, A, O>[] = [];
     public name?: string;
-    private aliasNames: string[] = [];
+    public aliasNames: string[] = [];
     public parent: Command|null = null;
     public children: Command[] = [];
     private sugarsConfig: Command.Sugar<A, O>[] = [];
@@ -104,9 +104,9 @@ export class Command<A extends any[] = [], O = {}> {
     }
     /**
      * 指定指令可使用范围
-     * @param scopes {Command.Scope[]}
+     * @param scopes {Message.Type[]}
      */
-    scope(...scopes:Command.Scope[]){
+    scope(...scopes:Message.Type[]){
         return this.check(({message},...args:A)=>{
             return scopes.includes(message.message_type)
         })
@@ -256,12 +256,12 @@ export class Command<A extends any[] = [], O = {}> {
         return this as Command<A, O>;
     }
 
-    async execute<AD extends Adapter,M extends AdapterReceive<AD>>(
+    async execute<AD extends Adapter>(
         adapter:AD,
-        bot:AdapterBot<AD>,
-        message: M,
+        bot:Bot<AD>,
+        message: Message<AD>,
         template = message.raw_message,
-    ): Promise<Segment | void> {
+    ): Promise<Message.Segment | void> {
         let runtime: Command.RunTime<AD, A, O> | void;
         try {
             runtime = this.parse(adapter,bot,message, template);
@@ -420,7 +420,7 @@ export class Command<A extends any[] = [], O = {}> {
         return argv;
     }
 
-    match<AD extends Adapter>(adapter:AD,bot:AdapterBot<AD>,message: AdapterReceive<AD>, template: string): boolean {
+    match<AD extends Adapter>(adapter:AD,bot:Bot<AD>,message: Message<AD>, template: string): boolean {
         try {
             return !!this.parse(adapter,bot,message, template);
         } catch {
@@ -428,7 +428,7 @@ export class Command<A extends any[] = [], O = {}> {
         }
     }
 
-    parse<AD extends Adapter>(adapter:AD,bot:AdapterBot<AD>,message: AdapterReceive<AD>, template: string): Command.RunTime<AD, A, O> | void {
+    parse<AD extends Adapter>(adapter:AD,bot:Bot<AD>,message: Message<AD>, template: string): Command.RunTime<AD, A, O> | void {
         let argv = this.parseSugar(template);
         if (!argv.name) argv = this.parseArgv(template);
         if (argv.name !== this.name) {
@@ -566,9 +566,9 @@ export namespace Command {
         args: A;
         adapter:AD
         options: O;
-        bot:AdapterBot<AD>;
+        bot:Bot<AD>;
         prompt:Prompt<AD>
-        message: AdapterReceive<AD>;
+        message: Message<AD>;
         command: Command<A, O>;
     };
     export type ArgConfig<S extends string = any> = {
@@ -622,7 +622,7 @@ export namespace Command {
     export type CallBack<AD extends Adapter=Adapter, A extends any[] = [], O = {}> = (
         runtime: RunTime<AD, A, O>,
         ...args: A
-    ) => MayBePromise<Segment | boolean | void>;
+    ) => MayBePromise<Message.Segment | boolean | void>;
 
     export interface Domain {
         text: string;
@@ -639,7 +639,6 @@ export namespace Command {
     }
 
     export type Type = keyof Domain;
-    export type Scope = 'private'|'group'|'guild'|'direct';
     export type DomainConfig<T extends Type, A extends string[] = string[]> = {
         parse(argv: string[]): A;
         transform: (...source: A) => Domain[T];
@@ -664,7 +663,7 @@ export namespace Command {
         for (const option in optionsConfig) {
             // @ts-ignore
             const optionConfig:Command.OptionConfig = optionsConfig[option];
-            if (optionConfig.required && !argv.options[option]) {
+            if (optionConfig.required && argv.options[option]===undefined) {
                 if (optionConfig.initialValue !== undefined)
                     argv.options[option] = optionConfig.initialValue;
                 else throw new Error(`option ${option} is required`);
@@ -680,7 +679,7 @@ export namespace Command {
                 if (
                     optionConfig.rest &&
                     Array.isArray(argv.options[option]) &&
-                    (argv.options[option] as any[]).every(v => (validate as Function)(argv.options[option]))
+                    (argv.options[option] as any[]).every(v => (validate as Function)(v))
                 )
                     continue;
                 throw new Error(`option ${option} should be ${optionConfig.type}`);

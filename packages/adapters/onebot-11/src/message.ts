@@ -1,55 +1,14 @@
 import { Dict, unwrap } from '52bot';
-import { OneBotV11 } from '@/onebot';
 
-export class MessageV11 {
-  raw_message: string = '';
-  user_id: number = 0;
-  group_id: number = 0;
-  message_type: 'group' | 'private' = 'private';
-  message: string | (MessageV11.Segment | string)[] = [];
+export interface MessageV11 {
+  raw_message: string;
+  user_id: number;
+  nickname?:string
+  group_id: number;
+  message_type: 'group' | 'private';
+  message: string | (MessageV11.Segment | string)[];
 
-  constructor(
-    public bot: OneBotV11,
-    event: Dict,
-  ) {
-    const { raw_message: _, message } = event;
-    Object.assign(this, {
-      raw_message: MessageV11.formatToString(message),
-      message: message,
-      ...event,
-    });
-  }
 }
-
-export class PrivateMessageEventV11 extends MessageV11 implements MessageV11.MessageEventV11 {
-  constructor(bot: OneBotV11, event: Dict) {
-    super(bot, event);
-    this.user_id = event.user_id;
-  }
-
-  async reply(message: MessageV11.Sendable) {
-    message=await this.bot.app!.renderMessage(message as string,this)
-    message = MessageV11.formatSegments(message);
-    if (typeof this.message === 'string') message = MessageV11.segmentsToCqCode(message as MessageV11.Segment[]);
-    return this.bot.sendPrivateMsg(this.user_id!, message);
-  }
-}
-
-export class GroupMessageEventV11 extends MessageV11 implements MessageV11.MessageEventV11 {
-  constructor(bot: OneBotV11, event: Dict) {
-    super(bot, event);
-    this.user_id = event.user_id;
-    this.group_id = event.group_id;
-  }
-
-  async reply(message: MessageV11.Sendable) {
-    message=await this.bot.app!.renderMessage(message as string,this)
-    message = MessageV11.formatSegments(message);
-    if (typeof this.message === 'string') message = MessageV11.segmentsToCqCode(message as MessageV11.Segment[]);
-    return this.bot.sendGroupMsg(this.group_id!, message);
-  }
-}
-
 export namespace MessageV11 {
   export type Segment = {
     type: string;
@@ -59,9 +18,6 @@ export namespace MessageV11 {
     message_id: number;
   };
   export type Sendable = string | Segment | (string | Segment)[];
-  export type MessageEventV11 = {
-    reply(message: Sendable): Promise<Ret>;
-  };
 
   export function segmentsToCqCode(segments: Segment[]) {
     let result = '';
@@ -143,10 +99,11 @@ export namespace MessageV11 {
     return result;
   }
 
-  export function formatToString(message: string | Segment[]) {
+  export function formatToString(message: string | (Segment|string)[]) {
     if (typeof message === 'string') return formatToString(parseSegmentsFromCqCode(message));
     let result: string = '';
-    for (const item of message) {
+    for (let item of message) {
+      if(typeof item=='string')item={type:'text',data:{text:item}}
       const { type, data } = item;
       if (type === 'text') result += data.text || '';
       else

@@ -1,19 +1,36 @@
-import { Adapter, loadYamlConfigOrCreate } from '52bot';
+import { Adapter, loadYamlConfigOrCreate, Message } from '52bot';
 import {
   Client,
   PrivateMessageEvent,
+  DiscussMessageEvent,
   GroupMessageEvent,
   GuildMessageEvent,
-  DiscussMessageEvent,
   Sendable,
-  Config,
+  Config, Quotable,
 } from 'icqq';
 import * as process from 'process';
 import { formatSendable, sendableToString } from '@/utils';
-type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent;
+type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent | DiscussMessageEvent| GuildMessageEvent;
 type ICQQAdapterConfig = QQConfig[];
 export type ICQQAdapter = typeof icqq;
-const icqq = new Adapter<Client, QQMessageEvent>('icqq');
+const icqq = new Adapter<Adapter.Bot<Client>, QQMessageEvent>('icqq');
+icqq.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
+  const bot=icqq.pick(bot_id)
+  let msg:Sendable=await icqq.app!.renderMessage(message as string,source)
+  msg = formatSendable(msg);
+  const quote:Quotable|undefined=target_type!=='guild'&& source? source.original as any:undefined
+  switch (target_type){
+    case 'group':
+      return bot.sendGroupMsg(parseInt(target_id),msg,quote)
+    case 'private':
+      return bot.sendPrivateMsg(parseInt(target_id),msg,quote)
+    case 'guild':
+      const [guild_id,channel_id]=target_id.split(':')
+      return bot.sendGuildMsg(guild_id,channel_id,message)
+    default:
+      throw new Error(`ICQQ适配器暂不支持发送${target_type}类型的消息`)
+  }
+})
 type QQConfig = {
   uin: number;
   password?: string;
@@ -37,25 +54,38 @@ const initBot = () => {
   }
   adapterConfig = configs;
   for (const { uin, password: _, ...config } of configs) {
-    icqq.bots.push(new Client(uin, config));
+    const client=new Client(uin,config)
+    Object.defineProperty(client,'unique_id',{
+      value: `${uin}`,
+      writable: false,
+    })
+    icqq.bots.push(client as Adapter.Bot<Client>);
   }
   icqq.on('start', startBots);
   icqq.on('stop', stopBots);
 };
-const messageHandler = (bot: Client, message: QQMessageEvent) => {
-  message.raw_message = sendableToString(message.message);
-  const oldReply = message.reply;
-  message.reply = async function (message: Sendable, quote?: boolean) {
-    message=await icqq.app!.renderMessage(message as string,this)
-    message = formatSendable(message);
-    return oldReply.call(this, message, quote);
-  };
+const messageHandler = (bot: Adapter.Bot<Client>, event: QQMessageEvent) => {
+  const message=Message.fromEvent(icqq,bot,event)
+  message.raw_message = sendableToString(event.message);
+  if (!(event instanceof GuildMessageEvent)) {
+    message.message_type = event.message_type as any
+    message.from_id=event.message_type==='private'?event.user_id+'':
+      event.message_type==='group'?event.group_id+'':event.discuss_id+''
+    message.sender=event.sender
+  }else{
+    message.from_id=`${event.guild_id}:${event.channel_id}`
+    message.sender={
+      user_id:event.sender.tiny_id,
+      user_name:event.sender.nickname
+    }
+    message.message_type='guild'
+  }
   icqq.app!.emit('message', icqq, bot, message);
 };
-const botLogin = async (bot: Client) => {
+const botLogin = async (bot: Adapter.Bot<Client>) => {
   return new Promise<void>(resolve => {
     bot.on('system.online', () => {
-      bot.on('message', messageHandler.bind(global, bot));
+      bot.on('message', messageHandler.bind(global,bot));
       resolve();
     });
     bot.on('system.login.device', e => {
