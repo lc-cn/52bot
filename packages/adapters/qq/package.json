@@ -2,7 +2,7 @@
     "name": "@52bot/qq",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.10",
+    "version": "0.0.11",
     "scripts": {
         "build": "tsc && tsc-alias && cp src/qq-default.yaml lib/qq-default.yaml"
     },

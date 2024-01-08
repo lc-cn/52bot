@@ -327,7 +327,7 @@ export namespace App {
     'plugin-beforeUnmount'(plugin: Plugin): void;
 
     'plugin-unmounted'(plugin: Plugin): void;
-
+    'ready'():void
     'message': <AD extends Adapter>(adapter: AD, bot: AdapterBot<AD>, message: AdapterReceive<AD>) => void;
     'service-register': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void;
     'service-destroy': <T extends keyof App.Services>(name: T, service: App.Services[T]) => void;

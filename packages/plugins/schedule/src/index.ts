@@ -1,7 +1,7 @@
 import { MessageBase,Message, Plugin } from '52bot';
 import {} from '@52bot/plugin-jsondb'
 import { CronDescriptors, ScheduleManager } from '@/scheduleManager';
-import { ScheduledTask } from 'node-cron';
+import { schedule, ScheduledTask } from 'node-cron';
 export type Schedule={
   adapter:string
   bot_id:string
@@ -94,5 +94,10 @@ schedulePlugin.command('删除定时 <no:number>')
     return '删除成功'
   })
 
-schedulePlugin.mounted(initialize)
+schedulePlugin.mounted(()=>{
+  schedulePlugin.app!.on('ready',initialize)
+})
+schedulePlugin.beforeUnmount(()=>{
+  schedulePlugin.app!.off('ready',initialize)
+})
 export default schedulePlugin

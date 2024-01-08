@@ -47,17 +47,18 @@ if(envConfig.parsed){
 			configPlugins.push(pluginInfo)
 		}
 	}
+	const builtPlugins=options.builtPlugins?.split(',')||[]
+	const modulePlugins = options.modulePlugins?.split(',')||[]
+	for(const plugin of [...builtPlugins,...modulePlugins]){
+		app.loadPlugin(plugin)
+	}
+	for(const pluginInfo of configPlugins){
+		app.loadPlugin(pluginInfo.name)
+		if(!pluginInfo.enable) app.disable(pluginInfo.name)
+	}
 	app.start().then(()=>{
-		const builtPlugins=options.builtPlugins?.split(',')||[]
-		const modulePlugins = options.modulePlugins?.split(',')||[]
-		for(const plugin of [...builtPlugins,...modulePlugins]){
-			app.loadPlugin(plugin)
-		}
-		for(const pluginInfo of configPlugins){
-			app.loadPlugin(pluginInfo.name)
-			if(!pluginInfo.enable) app.disable(pluginInfo.name)
-		}
 		app.logger.info(`load ${app.pluginList.length} plugins. (${app.pluginList.map(p=>p.name)})`)
+		app.emit('ready')
 	})
 }else{
 	throw envConfig.error||new Error(`解析文件: .${mode}.env 失败`)
