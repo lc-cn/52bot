@@ -3,6 +3,7 @@ import { Dict, unwrap } from '52bot';
 export interface MessageV11 {
   raw_message: string;
   user_id: number;
+  message_id:string
   nickname?:string
   group_id: number;
   message_type: 'group' | 'private';

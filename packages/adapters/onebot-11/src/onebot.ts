@@ -37,6 +37,9 @@ export class OneBotV11 extends EventEmitter {
     if (result.retcode !== undefined && result.echo) return this.emit('echo', result.echo, result.data);
     const event: OneBotV11.EventPayload = result as OneBotV11.EventPayload;
     this.adapter.logger.debug('receive event', event);
+    if(event.post_type==='message'){
+      this.adapter.logger.info(`recv [${event.message_type} ${event.group_id||event.user_id}]: ${event.raw_message}`)
+    }
     this.emit(event.post_type, event);
   }
 
@@ -88,15 +91,6 @@ export class OneBotV11 extends EventEmitter {
     this.ws.on('message', this.dispatch);
     this.ws.on('error', e => {
       this.adapter.logger.error(e?.message);
-      if (this.reTryCount < config.max_reconnect_count) {
-        this.adapter.logger.mark(`reconnect after ${config.reconnect_interval} ms`);
-        setTimeout(() => {
-          this.reTryCount++;
-          this.connectWs(cfg);
-        }, config.reconnect_interval);
-      } else {
-        this.adapter.logger.mark(`retry times is exceeded of ${config.max_reconnect_count}`);
-      }
     });
     this.ws.on('close', () => {
       if (this.reTryCount < config.max_reconnect_count) {
@@ -151,11 +145,14 @@ export class OneBotV11 extends EventEmitter {
     });
   }
 
-  async sendPrivateMsg(user_id: number, message: MessageV11.Sendable) {
-    return this.sendPayload({
+  async sendPrivateMsg(user_id: number, message: MessageV11.Sendable,message_id?:string) {
+    this.adapter.logger.info(`send [Private ${user_id}]: ${this.getBrief(message)}`)
+    const result=await this.sendPayload({
       action: 'send_private_msg',
-      params: { user_id, message },
+      params: { user_id, message,message_id },
     });
+    if(!result.message_id) return this.adapter.logger.error(`send failed:`,result)
+    return result.message_id
   }
   getGroupList() {
     return this.sendPayload({
@@ -206,11 +203,26 @@ export class OneBotV11 extends EventEmitter {
       },
     });
   }
-  async sendGroupMsg(group_id: number, message: MessageV11.Sendable) {
-    return this.sendPayload({
+  async sendGroupMsg(group_id: number, message: MessageV11.Sendable,message_id?:string) {
+    this.adapter.logger.info(`send [Group ${group_id}]: ${this.getBrief(message)}`)
+    const result=await this.sendPayload({
       action: 'send_group_msg',
-      params: { group_id, message },
+      params: { group_id, message,message_id },
     });
+    if(!result.message_id) return this.adapter.logger.error(`send failed:`,result)
+    return result.message_id
+  }
+  getBrief(message:MessageV11.Sendable):string{
+    if(typeof message ==='string'){
+      return message
+    }
+    if(Array.isArray(message)){
+      return message.map(m=>this.getBrief(m)).join('')
+    }
+    if(message.type==='text'){
+      return message.data.text
+    }
+    return `{${message.type},${Object.keys(message.data).join(',')}}`
   }
 }
 

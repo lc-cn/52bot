@@ -10,9 +10,9 @@ oneBotV11.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>
   msg = MessageV11.formatSegments(msg);
   switch (target_type){
     case 'group':
-      return bot.sendGroupMsg(parseInt(target_id),msg)
+      return bot.sendGroupMsg(parseInt(target_id),msg,source?.original?.message_id)
     case 'private':
-      return bot.sendPrivateMsg(parseInt(target_id),msg)
+      return bot.sendPrivateMsg(parseInt(target_id),msg,source?.original?.message_id)
     default:
       throw new Error(`OneBotV11适配器暂不支持发送${target_type}类型的消息`)
   }
