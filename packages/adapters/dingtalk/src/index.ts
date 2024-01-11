@@ -1,4 +1,4 @@
-import { Adapter, Dict, loadYamlConfigOrCreate, Message, yaml } from '52bot';
+import { Adapter, loadYamlConfigOrCreate, Message,toYamlString } from '52bot';
 import { Bot,Sendable,PrivateMessageEvent,GroupMessageEvent } from 'node-dd-bot';
 import { formatSendable, sendableToString } from '@/utils';
 type DingMsgEvent=PrivateMessageEvent|GroupMessageEvent
@@ -18,7 +18,7 @@ dingTalkAdapter.define('sendMsg',async (bot_id,target_id,target_type,message,sou
 })
 const initBot = () => {
   const [configs, isCreate] = loadYamlConfigOrCreate<Bot.Options[]>('dingtalk.yaml',
-    yaml.stringify([
+    toYamlString([
       {
         clientId:'',
         clientSecret:'',

@@ -1,4 +1,4 @@
-import { Adapter, loadYamlConfigOrCreate, Message } from '52bot';
+import { Adapter,toYamlString, loadYamlConfigOrCreate, Message } from '52bot';
 import {
   Client,
   PrivateMessageEvent,
@@ -38,7 +38,7 @@ type QQConfig = {
 let adapterConfig: ICQQAdapterConfig;
 const initBot = () => {
   const [configs, isCreate] = loadYamlConfigOrCreate<ICQQAdapterConfig>(
-    'icqq.yaml', JSON.stringify(
+    'icqq.yaml', toYamlString(
       [
         {
           uin: 0,
@@ -47,7 +47,7 @@ const initBot = () => {
           data_dir: 'data',
           sign_api_addr: '',
         },
-      ],null,2));
+      ]));
   if (isCreate) {
     icqq.app!.logger.info('请先完善icqq.yaml中的配置后继续');
     process.exit();
@@ -115,7 +115,7 @@ const botLogin = async (bot: Adapter.Bot<Client>) => {
     bot.on('system.login.slider', () => {
       icqq.app!.logger.mark('请点击上方链接，完成滑块验证后，输入获取到的ticket后继续');
       process.stdin.once('data', buf => {
-        bot.login(buf.toString().trim());
+        bot.submitSlider(buf.toString().trim());
       });
     });
     bot.on('system.login.error', () => {

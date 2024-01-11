@@ -133,29 +133,42 @@ test.command('notice')
     })
   })
 test.command('btn')
-  .action(async ()=>{
+  .action(async ({bot})=>{
     return segment('markdown',{
-      custom_template_id:'102005927_1704250658',
+      custom_template_id:'102005927_1704438965',
       params:[
         {
           key:'title',
-          values:"帮助"
+          values:"你是不是在找这些指令？"
         },
         {
           key:'cmd1',
-          values:encodeURI('插件管理')
+          values:'插件管理'
         },
         {
-          key:'cmd2',
-          values:encodeURI('问答管理')
+          key: 'decode1',
+          values: encodeURI('插件管理')
         },
         {
-          key:'cmd3',
-          values:encodeURI('一言')
+          key: 'cmd2',
+          values: '问答列表'
+        },
+        {
+          key: 'decode2',
+          values: encodeURI('问答列表')
+        },
+        {
+          key: 'cmd3',
+          values: '定时列表'
+        },
+        {
+          key: 'decode3',
+          values: encodeURI('定时列表')
         }
       ]
     })+segment('keyboard',{
-      id:'102005927_1702366046'
+      id:'102005927_1702366046',
+      bot_id:bot.unique_id
     })
   })
 export default test

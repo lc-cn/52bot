@@ -2,7 +2,7 @@
     "name": "@52bot/icqq",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.8",
+    "version": "0.0.11",
     "scripts": {
         "build": "tsc && tsc-alias"
     },
@@ -16,6 +16,6 @@
     },
     "dependencies": {
         "icqq": "latest",
-        "52bot": "workspace:latest"
+        "52bot": "latest"
     }
 }

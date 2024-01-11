@@ -1,4 +1,4 @@
-import { Adapter, Dict, loadYamlConfigOrCreate, Message} from '52bot';
+import { Adapter, loadYamlConfigOrCreate, Message, toYamlString } from '52bot';
 import '@52bot/plugin-http-server';
 import { OneBotV11 } from '@/onebot';
 import {  MessageV11 } from '@/message';
@@ -22,7 +22,7 @@ const initBot = () => {
     throw new Error('“oneBot V11 miss require service “http”, maybe you need install “ @52bot/plugin-http-server ”');
   const [configs, isCreate] = loadYamlConfigOrCreate<OneBotV11Adapter.Config>(
     'onebot-11.yaml',
-    JSON.stringify([
+    toYamlString([
       {
         type: 'ws',
         access_token: '',
@@ -33,7 +33,7 @@ const initBot = () => {
         access_token: '',
         ...OneBotV11.defaultConfig['ws_reverse'],
       },
-    ],null,2)
+    ])
     );
   if (isCreate) {
     oneBotV11.app!.logger.info('请先完善onebot-11.yaml中的配置后继续');

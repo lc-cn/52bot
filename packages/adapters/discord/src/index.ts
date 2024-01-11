@@ -1,4 +1,4 @@
-import { Adapter, loadYamlConfigOrCreate, Message, yaml } from '52bot';
+import { Adapter, loadYamlConfigOrCreate, Message, toYamlString } from '52bot';
 import { Bot,GuildMessageEvent,DirectMessageEvent,Sendable } from 'ts-disc-bot';
 import { formatSendable, sendableToString } from '@/utils';
 const discordAdapter=new Adapter<Adapter.Bot<Bot>>('discord')
@@ -19,7 +19,7 @@ type DingTalkMessageEvent=GuildMessageEvent|DirectMessageEvent
 
 const initBot = () => {
   const [configs, isCreate] = loadYamlConfigOrCreate<Bot.Options[]>('discord.yaml',
-    yaml.stringify([
+    toYamlString([
       {
         clientId:'',
         clientSecret:'',

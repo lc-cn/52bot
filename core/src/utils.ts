@@ -118,6 +118,9 @@ export function formatTime(seconds:number){
     }
     return result.trimEnd()
 }
+export function toYamlString(value:any){
+    return YAML.stringify(value)
+}
 export function loadYamlConfigOrCreate<T>(name:string,defaultValue:string):[T,boolean]{
     const filePath=path.resolve(process.cwd(),name)
     let needCreate=!fs.existsSync(filePath)

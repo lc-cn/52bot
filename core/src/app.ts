@@ -111,7 +111,11 @@ export class App extends EventEmitter {
     const middleware = Middleware.compose(this.getSupportMiddlewares(adapter, bot, event));
     middleware(adapter, bot, event);
   }
-
+  plugin(name:string,plugin:Plugin):this{
+    if(this.plugins.has(name)) throw new Error('插件已存在')
+    this.plugins.set(name,plugin)
+    return this
+  }
   enable(name: string): this
   enable(plugin: Plugin): this
   enable(plugin: Plugin | string) {
@@ -334,7 +338,7 @@ export namespace App {
   }
 
   export interface Config {
-    plugins: string[] | Dict | ({ name: string, enable?: boolean, options?: any })[];
+    plugins: (string|Plugin.InstallObject|Plugin.InstallFn)[] | Dict<string|Plugin.InstallObject|Plugin.InstallFn>;
   }
 
   export interface Services {

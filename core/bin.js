@@ -5,7 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const defaultArgv = {
 	mode: 'prod',
-	config: 'bot.config.js',
+	config: 'bot.config',
 	init: false
 }
 const getValue = (list, key, defaultValue) => {

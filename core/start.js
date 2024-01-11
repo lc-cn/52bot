@@ -12,6 +12,13 @@ const wrapExport=(filePath)=>{
 }
 let { mode = "",config:configFile,...other } = process.env;
 const entry = path.resolve(__dirname, "lib");
+const getConfigFullPath=()=>{
+	const extArr=['.ts','js','.yaml','.yml']
+	for(const ext of extArr){
+		if(fs.existsSync(`${configFile}${ext}`)) return `${configFile}${ext}`
+	}
+	return ''
+}
 const {App} = require(entry)
 const envConfig=dotEnv.config({
 	path: path.join(process.cwd(),`.${mode}.env`)
@@ -24,7 +31,8 @@ if(envConfig.parsed){
 
 	options.pluginDirs=(options.pluginDirs||'').split(',').filter(Boolean)
 	let config,existConfigFile=false;
-	if(fs.existsSync(configFile)){
+	configFile=getConfigFullPath()
+	if(configFile){
 		existConfigFile=true
 		if(/\.[tj]s$/.test(configFile)) config=wrapExport(configFile)
 		else if(/\.y(a)?ml$/.test(configFile)) config=Yaml.parse(fs.readFileSync(configFile,'utf8'))
@@ -39,11 +47,16 @@ if(envConfig.parsed){
 	const configPlugins=[]
 	if(config){
 		let {plugins=[]}=config
-		if(!Array.isArray(plugins)) plugins=Object.entries(plugins.map(([name,enable])=>{
-			return {name,enable:enable!==false}
+		if(!Array.isArray(plugins)) plugins=Object.entries(plugins.map(([name,info])=>{
+			return {
+				name,
+				enable:typeof info==='boolean'?info:true,
+				install:typeof info==='function'?info:undefined
+			}
 		}))
 		for(let pluginInfo of plugins){
 			if(typeof pluginInfo==='string') pluginInfo={name:pluginInfo,enable:true}
+			else if(typeof pluginInfo==='function') pluginInfo={name:pluginInfo.name,enable:true,install:pluginInfo}
 			configPlugins.push(pluginInfo)
 		}
 	}
@@ -53,7 +66,8 @@ if(envConfig.parsed){
 		app.loadPlugin(plugin)
 	}
 	for(const pluginInfo of configPlugins){
-		app.loadPlugin(pluginInfo.name)
+		if(pluginInfo.install) app.use(pluginInfo)
+		else app.loadPlugin(pluginInfo.name)
 		if(!pluginInfo.enable) app.disable(pluginInfo.name)
 	}
 	app.start().then(()=>{
