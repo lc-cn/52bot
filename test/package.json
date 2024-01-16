@@ -4,7 +4,7 @@
     "scripts": {
         "start": "52bot",
         "initial": "52bot init -m dev",
-        "dev": "52bot -m dev -c bot.config.ts"
+        "dev": "52bot -m dev"
     },
     "dependencies": {
         "52bot": "workspace:latest",

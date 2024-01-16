@@ -8,8 +8,6 @@ import { AppKey, Required } from '@/constans';
 import path from 'path';
 import { Adapter, AdapterBot, AdapterReceive } from '@/adapter';
 import { Message } from '@/message';
-import * as process from 'process';
-import { Prompt } from '@/prompt';
 export function defineConfig(config:App.Config):App.Config
 export function defineConfig(initialFn:(env:typeof process.env & {mode:string})=>App.Config):(env:typeof process.env & {mode:string})=>App.Config
 export function defineConfig(config:App.Config|((env:typeof process.env & {mode:string})=>App.Config)){
@@ -111,9 +109,17 @@ export class App extends EventEmitter {
     const middleware = Middleware.compose(this.getSupportMiddlewares(adapter, bot, event));
     middleware(adapter, bot, event);
   }
-  plugin(name:string,plugin:Plugin):this{
-    if(this.plugins.has(name)) throw new Error('插件已存在')
-    this.plugins.set(name,plugin)
+  plugin(plugin:Plugin):this{
+    this.emit('plugin-beforeMount', plugin);
+    plugin[AppKey] = this;
+    plugin.mounted(()=>{
+      for (const [name, service] of (plugin as Plugin).services) {
+        this.emit('service-register', name, service);
+      }
+      this.logger.info(`插件：${plugin.name} 已加载。`);
+    })
+    this.emit('plugin-mounted',plugin);
+    plugin.isMounted=true
     return this
   }
   enable(name: string): this
@@ -144,7 +150,7 @@ export class App extends EventEmitter {
     if (['plugin-beforeMount', 'plugin-mounted', 'plugin-beforeUnmount', 'plugin-unmounted'].includes(event)) {
       const plugin: Plugin = args[0];
       const method = event.split('-')[1];
-      if (plugin && plugin['lifecycle'][method]?.length) {
+      if (plugin && plugin?.['lifecycle']?.[method]?.length) {
         for (const lifecycle of plugin['lifecycle'][method]) {
           lifecycle();
         }
@@ -161,8 +167,11 @@ export class App extends EventEmitter {
   use(init: Plugin.InstallFn, config?: Plugin.Options): this
   use(init: Plugin.InstallObject | Plugin.InstallFn, config?: Plugin.Options): this {
     let name = typeof init === 'function' ? this.plugins.generateId : init.name || this.plugins.generateId;
-    const plugin = new Plugin(name, config);
     const initFn = typeof init === 'function' ? init : init.install;
+    if(!initFn){
+      throw new Error('插件初始化函数不能为空')
+    }
+    const plugin = new Plugin(name, config);
     this.mount(plugin);
     try {
       initFn(plugin);
@@ -175,26 +184,25 @@ export class App extends EventEmitter {
 
   mount(name: string): this
   mount(plugin: Plugin): this
-  mount(plugin: Plugin | string) {
-    if (typeof plugin === 'string') {
-      plugin = loadModule(plugin);
+  mount(entry: Plugin | string) {
+    let plugin:Plugin
+    if(entry instanceof Plugin) plugin=entry
+    else {
+      const mod=loadModule<any>(entry)
+      if(mod instanceof Plugin) plugin=mod
+      else plugin=this.plugins.getWithPath(entry)!
+      if(typeof mod==='function' || mod['install']==='function') return this.use(mod)
+      if(!plugin) throw new Error(`"${entry}" is not a valid plugin`)
+      if(this.plugins.has(plugin.name)) return this
     }
-    if (!(plugin instanceof Plugin)) return this.use(plugin as any);
-    this.emit('plugin-beforeMount', plugin);
-    this.plugins.set(plugin.name, plugin);
-    plugin[AppKey] = this;
-    plugin.mounted(()=>{
-      for (const [name, service] of (plugin as Plugin).services) {
-        this.emit('service-register', name, service);
-      }
-      this.logger.info(`插件：${ (plugin as Plugin).name} 已加载。`);
-    })
+    this.plugins.set(plugin.name,plugin)
     if(plugin[Required].length){
       const requiredServices=plugin[Required]
       const mountFn=()=>{
-        if(requiredServices.every(s=>{
-          return !!this[s]
-        })) this.emit('plugin-mounted',plugin)
+        if(requiredServices.every(key=>!!this[key])){
+          this.plugin(plugin)
+          this.off('service-register',mountFn)
+        }
       }
       const serviceDestroyListener=(name:string)=>{
         if(requiredServices.some(s=>{
@@ -205,11 +213,12 @@ export class App extends EventEmitter {
       this.on('service-destroy',serviceDestroyListener)
       plugin.beforeUnmount(()=>{
         this.off('service-register',mountFn)
-        this.off('service-destroy',serviceDestroyListener)
+        this.off('service-destroy',serviceDestroyListener);
+        (plugin as Plugin).isMounted=false
       })
       mountFn()
     }else{
-      this.emit('plugin-mounted', plugin);
+      this.plugin(plugin)
     }
     return this;
   }

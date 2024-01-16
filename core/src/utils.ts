@@ -1,6 +1,8 @@
 import * as path from "path";
 import * as fs from "fs";
 import YAML from "yaml";
+import { Plugin } from '@/plugin';
+import { Dict } from '@/types';
 
 
 export function isEmpty<T>(data: T) {
@@ -72,7 +74,6 @@ export function trimQuote(str: string) {
     }
     return str;
 }
-
 export function loadModule<T=unknown>(name: string):T {
     const result=require('jiti')(__filename)(name)
     if(result.default) {

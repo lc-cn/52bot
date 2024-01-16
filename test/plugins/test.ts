@@ -1,4 +1,4 @@
-import { Plugin, segment } from '52bot';
+import { Plugin } from '52bot';
 import '@52bot/plugin-sandbox'
 const test=new Plugin('测试插件2')
 test.command('test-confirm')
@@ -45,33 +45,6 @@ test.command('test-pick')
     })
     return `inputResult:${input} ${typeof input}`
   })
-test.command('md_btn')
-.action(()=>{
-  return [
-    segment('text',{
-      text:'123'
-    }),
-    segment('button',{
-      id:"1",
-      render_data:{
-        label:'测试按钮',
-        visited_label:'点过了'
-      },
-      action:{
-        type: 2,
-        permission:{
-          type:0
-        }
-      }
-    })
-  ].join('')
-})
-test.command('cmd')
-  .action(()=>{
-    return segment('markdown',{
-      content:`<cmd reply='true' cmd="/help">`
-    })
-  })
 test.mounted(()=>{
   test.defineComponent({
     name:'test2',
@@ -92,83 +65,4 @@ test.mounted(()=>{
     }
   })
 })
-test.command('notice')
-  .action(async ()=>{
-    return segment('markdown',{
-      custom_template_id:'102005927_1702364737',
-      params:[
-        {
-          key:'title',
-          values:'52bot@0.0.1更新通知'
-        },
-        {
-          key:'desc1',
-          values:"添加指令解析能力"
-        },
-        {
-          key:'desc2',
-          values:"增加内置插件commandParser"
-        },
-        {
-          key:'desc3',
-          values:"增加内置插件echo"
-        },
-        {
-          key:'desc4',
-          values:"增加内置插件pluginPlugin"
-        },
-        {
-          key:'desc5',
-          values:"添加中间件能力"
-        },
-        {
-          key:'text',
-          values:'了解详情'
-        },
-        {
-          key:'link',
-          values:'https://github.com/lc-cn/52bot'
-        }
-      ]
-    })
-  })
-test.command('btn')
-  .action(async ({bot})=>{
-    return segment('markdown',{
-      custom_template_id:'102005927_1704438965',
-      params:[
-        {
-          key:'title',
-          values:"你是不是在找这些指令？"
-        },
-        {
-          key:'cmd1',
-          values:'插件管理'
-        },
-        {
-          key: 'decode1',
-          values: encodeURI('插件管理')
-        },
-        {
-          key: 'cmd2',
-          values: '问答列表'
-        },
-        {
-          key: 'decode2',
-          values: encodeURI('问答列表')
-        },
-        {
-          key: 'cmd3',
-          values: '定时列表'
-        },
-        {
-          key: 'decode3',
-          values: encodeURI('定时列表')
-        }
-      ]
-    })+segment('keyboard',{
-      id:'102005927_1702366046',
-      bot_id:bot.unique_id
-    })
-  })
 export default test

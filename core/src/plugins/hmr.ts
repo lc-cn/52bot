@@ -1,5 +1,5 @@
 import {watch,FSWatcher} from 'chokidar'
-import { Plugin, App } from '@';
+import { Plugin } from '@';
 import * as path from "path";
 import * as fs from "fs";
 import * as process from 'process';
@@ -46,9 +46,7 @@ HMR.mounted(()=>{
         if (!adapter) return
         adapter.emit('start')
     }
-    const reloadPlugin = (filePath: string) => {
-        const plugin = app.pluginList.find(p => p.filePath === filePath)
-        if(!plugin) return
+    const reloadPlugin=(filePath:string,plugin:Plugin)=>{
         app.logger.debug(`插件：${plugin.name} 产生变更，即将更新`)
         const oldCache = require.cache[filePath]
         if(plugin===HMR) watcher.close()
@@ -61,13 +59,20 @@ HMR.mounted(()=>{
             app.mount(filePath)
         }
     }
+    const reloadPlugins = (filePath: string) => {
+        const plugins = app.pluginList.filter(p => p.filePath === filePath)
+        if(!plugins.length) return
+        for(const plugin of plugins) {
+            reloadPlugin(filePath,plugin)
+        }
+    }
     const changeListener = (filePath: string) => {
         if (filePath.endsWith('.env') || filePath===app.config.configFile) {
             return reloadProject(filePath.replace(path.dirname(filePath)+'/',''))
         }
         const pluginFiles = app.pluginList.map(p => p.filePath)
         if (watchDirs.some(dir => filePath.startsWith(dir)) && pluginFiles.includes(filePath)) {
-            return reloadPlugin(filePath)
+            return reloadPlugins(filePath)
         }
         if (filePath.startsWith(path.resolve(__dirname, '../adapters'))) {
             return reloadAdapter(filePath)

@@ -8,8 +8,10 @@ import { Dict, NumString } from '@/types';
 import path from 'path';
 export class Plugin extends EventEmitter {
     disposes: Function[] = [];
+    isMounted: boolean = false;
     [Required]:(keyof App.Services)[]=[];
-    readonly filePath:string;
+    filePath:string;
+    setup:boolean=false;
     private lifecycle:Dict<Function[]>={}
     public adapters?: string[]
     status: Plugin.Status = 'enabled'
@@ -202,6 +204,12 @@ export namespace Plugin {
 export class PluginMap extends Map<string,Plugin>{
     private get anonymousCount(){
         return [...this.keys()].filter(name => name.startsWith(`anonymous_`)).length
+    }
+    getWithPath(filePath:string){
+        for(const [_,plugin] of this){
+            const result=plugin.filePath.replace(filePath,'')
+            if(!result || ['.ts','js'].includes(result)) return plugin
+        }
     }
     get generateId(){
         for(let i=0;i<this.anonymousCount;i++){
