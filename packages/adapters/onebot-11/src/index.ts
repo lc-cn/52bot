@@ -1,9 +1,16 @@
-import { Adapter, loadYamlConfigOrCreate, Message, toYamlString } from '52bot';
+import { Adapter, Message } from '52bot';
 import '@52bot/plugin-http-server';
 import { OneBotV11 } from '@/onebot';
 import {  MessageV11 } from '@/message';
 export type OneBotV11Adapter = typeof oneBotV11;
-const oneBotV11 = new Adapter<Adapter.Bot<OneBotV11>, MessageV11>('OneBotV11');
+const oneBotV11 = new Adapter<Adapter.Bot<OneBotV11>, MessageV11>('onebot-11');
+declare module '52bot'{
+  namespace App{
+    interface Adapters {
+      'onebot-11':OneBotV11.Config
+    }
+  }
+}
 oneBotV11.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
   const bot=oneBotV11.pick(bot_id)
   let msg:MessageV11.Sendable=await oneBotV11.app!.renderMessage(message as string,source)
@@ -17,28 +24,10 @@ oneBotV11.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>
       throw new Error(`OneBotV11适配器暂不支持发送${target_type}类型的消息`)
   }
 })
-const initBot = () => {
+const initBot = (configs:OneBotV11.Config[]) => {
   if (!oneBotV11.app?.server)
     throw new Error('“oneBot V11 miss require service “http”, maybe you need install “ @52bot/plugin-http-server ”');
-  const [configs, isCreate] = loadYamlConfigOrCreate<OneBotV11Adapter.Config>(
-    'onebot-11.yaml',
-    toYamlString([
-      {
-        type: 'ws',
-        access_token: '',
-        ...OneBotV11.defaultConfig['ws'],
-      },
-      {
-        type: 'ws_reverse',
-        access_token: '',
-        ...OneBotV11.defaultConfig['ws_reverse'],
-      },
-    ])
-    );
-  if (isCreate) {
-    oneBotV11.app!.logger.info('请先完善onebot-11.yaml中的配置后继续');
-    return process.exit();
-  }
+
   for (const config of configs) {
     const bot=new OneBotV11(oneBotV11,config,oneBotV11.app!.router)
     Object.defineProperty(bot,'unique_id',{

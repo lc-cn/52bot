@@ -2,7 +2,7 @@
     "name": "@52bot/qq",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.11",
+    "version": "0.0.12",
     "scripts": {
         "build": "tsc && tsc-alias && cp src/qq-default.yaml lib/qq-default.yaml"
     },
@@ -16,9 +16,10 @@
     },
     "dependencies": {
         "52bot": "workspace:latest",
-        "qq-group-bot": "^1.0.7"
+        "qq-group-bot": "^1.0.30"
     },
     "peerDependencies": {
+        "qq-group-bot": "latest",
         "52bot": "workspace:latest"
     }
 }

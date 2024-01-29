@@ -1,7 +1,14 @@
-import { Adapter, loadYamlConfigOrCreate, Message, toYamlString } from '52bot';
+import { Adapter, Message } from '52bot';
 import { Bot,GuildMessageEvent,DirectMessageEvent,Sendable } from 'ts-disc-bot';
 import { formatSendable, sendableToString } from '@/utils';
 const discordAdapter=new Adapter<Adapter.Bot<Bot>>('discord')
+declare module '52bot'{
+  namespace App{
+    interface Adapters {
+      discord:Bot.Options
+    }
+  }
+}
 discordAdapter.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
   const bot=discordAdapter.pick(bot_id)
   let msg:Sendable=await discordAdapter.app!.renderMessage(message as string,source)
@@ -17,24 +24,7 @@ discordAdapter.define('sendMsg',async (bot_id,target_id,target_type,message,sour
 })
 type DingTalkMessageEvent=GuildMessageEvent|DirectMessageEvent
 
-const initBot = () => {
-  const [configs, isCreate] = loadYamlConfigOrCreate<Bot.Options[]>('discord.yaml',
-    toYamlString([
-      {
-        clientId:'',
-        clientSecret:'',
-        reconnect_interval:3000,
-        max_reconnect_count:10,
-        heartbeat_interval:3000,
-        request_timeout:5000,
-        sandbox:true,
-      }
-    ])
-  );
-  if (isCreate) {
-    discordAdapter.app!.logger.info('请先完善discord.yaml中的配置后继续');
-    process.exit();
-  }
+const initBot = (configs:Bot.Options[]) => {
   for (const config of configs) {
     const bot=new Bot(config)
     Object.defineProperty(bot,'unique_id',{

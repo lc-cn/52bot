@@ -55,7 +55,7 @@ type ArgType<S> = S extends `${string}<${infer R}>${string}`
     : S extends `${string}[${infer R}]${string}`
         ? Partial<ParseArgType<R, string>>
         : ParseArgType<S, string>;
-type OptionType<S extends string> = S extends `${string}<${infer R}>${string}`
+export type OptionType<S extends string> = S extends `${string}<${infer R}>${string}`
     ? ParseOptionType<R, {}>
     : S extends `${string}[${infer R}]${string}`
         ? Partial<ParseOptionType<R, {}>>
@@ -70,7 +70,7 @@ export type OptionsType<S extends string> = S extends `${infer L} ${infer R}`
     : S extends `${infer L}`
         ? OptionType<L>
         : {};
-type OptionValueType<S extends string> = OptionType<S> extends {
+export type OptionValueType<S extends string> = OptionType<S> extends {
         [key: string]: infer T;
     }
     ? T

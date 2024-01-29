@@ -11,12 +11,18 @@ HMR.unmounted(()=>{
 })
 HMR.mounted(()=>{
     const app=HMR.app!
+    const configFiles=[
+      `${process.env.cofnig}.js`,
+      `${process.env.config}.ts`,
+        `${process.env.cofnig}.cjs`,
+        `${process.env.config}.mts`,
+    ].filter(filePath=>fs.existsSync(filePath))
     const watchDirs = [ // 只监听本地插件和内置插件的变更，模块的管不了
         ...(app.config.pluginDirs||[]).map(dir=>{
             return path.join(process.cwd(),dir)
         }),// 本地目录插件
         __dirname, // 内置插件
-        app.config.configFile?app.config.configFile:'', // 配置文件
+        ...configFiles,
         path.join(process.cwd(), `.${process.env.mode}.env`), // 环境变量
     ].filter(Boolean)
     watcher = watch(watchDirs.filter(p => {
@@ -25,26 +31,6 @@ HMR.mounted(()=>{
     const reloadProject = (filename:string) => {
         app.logger.info(`\`${filename}\` changed restarting ...`)
         return process.exit(51)
-    }
-    const reloadAdapter = (filePath: string) => {
-        const adapterName = filePath
-          .replace(path.dirname(filePath) + '/', '')
-          .replace(/\.(t|j|cj)s/, '')
-        let adapter = app.adapters.get(adapterName)
-        if (!adapter) return
-        const oldCache = require.cache[filePath]
-        adapter.unmount()
-        app.adapters.delete(adapterName)
-        delete require.cache[filePath]
-        try {
-            app.initAdapter([adapterName])
-        } catch (e) {
-            require.cache[filePath] = oldCache
-            app.initAdapter([adapterName])
-        }
-        adapter = app.adapters.get(adapterName)
-        if (!adapter) return
-        adapter.emit('start')
     }
     const reloadPlugin=(filePath:string,plugin:Plugin)=>{
         app.logger.debug(`插件：${plugin.name} 产生变更，即将更新`)
@@ -67,15 +53,12 @@ HMR.mounted(()=>{
         }
     }
     const changeListener = (filePath: string) => {
-        if (filePath.endsWith('.env') || filePath===app.config.configFile) {
+        if (filePath.endsWith('.env') || filePath.startsWith(process.env.config as string)) {
             return reloadProject(filePath.replace(path.dirname(filePath)+'/',''))
         }
         const pluginFiles = app.pluginList.map(p => p.filePath)
         if (watchDirs.some(dir => filePath.startsWith(dir)) && pluginFiles.includes(filePath)) {
             return reloadPlugins(filePath)
-        }
-        if (filePath.startsWith(path.resolve(__dirname, '../adapters'))) {
-            return reloadAdapter(filePath)
         }
     }
     watcher.on('change', changeListener)

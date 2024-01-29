@@ -1,8 +1,8 @@
 {
-    "name": "@52bot/plugin-guild-manager",
+    "name": "@52bot/plugin-group-manage",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.4",
+    "version": "0.0.1",
 
     "scripts": {
         "build": "tsc && tsc-alias"
@@ -13,10 +13,10 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/plugins/guildManager"
+        "directory": "packages/plugins/groupManage"
     },
     "dependencies": {
         "52bot": "workspace:latest",
-        "@52bot/qq": "workspace:latest"
+        "@52bot/icqq": "workspace:latest"
     }
 }

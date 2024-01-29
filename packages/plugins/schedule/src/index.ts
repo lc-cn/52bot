@@ -1,7 +1,7 @@
 import { MessageBase,Message, Plugin } from '52bot';
 import {} from '@52bot/plugin-jsondb'
 import { CronDescriptors, ScheduleManager } from '@/scheduleManager';
-import { schedule, ScheduledTask } from 'node-cron';
+import { ScheduledTask } from 'node-cron';
 export type Schedule={
   adapter:string
   bot_id:string

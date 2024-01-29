@@ -1,4 +1,4 @@
-import { Adapter,toYamlString, loadYamlConfigOrCreate, Message } from '52bot';
+import { Adapter,Message } from '52bot';
 import {
   Client,
   PrivateMessageEvent,
@@ -6,6 +6,8 @@ import {
   GroupMessageEvent,
   GuildMessageEvent,
   Sendable,
+  genDmMessageId,
+  genGroupMessageId,
   Config, Quotable,
 } from 'icqq';
 import * as process from 'process';
@@ -14,6 +16,13 @@ type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent | DiscussMessageEv
 type ICQQAdapterConfig = QQConfig[];
 export type ICQQAdapter = typeof icqq;
 const icqq = new Adapter<Adapter.Bot<Client>, QQMessageEvent>('icqq');
+declare module '52bot'{
+  namespace App{
+    interface Adapters {
+      icqq:QQConfig
+    }
+  }
+}
 icqq.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
   const bot=icqq.pick(bot_id)
   let msg:Sendable=await icqq.app!.renderMessage(message as string,source)
@@ -33,25 +42,11 @@ icqq.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
 })
 type QQConfig = {
   uin: number;
+  master:number
   password?: string;
 } & Config;
 let adapterConfig: ICQQAdapterConfig;
-const initBot = () => {
-  const [configs, isCreate] = loadYamlConfigOrCreate<ICQQAdapterConfig>(
-    'icqq.yaml', toYamlString(
-      [
-        {
-          uin: 0,
-          password: '',
-          platform: 2,
-          data_dir: 'data',
-          sign_api_addr: '',
-        },
-      ]));
-  if (isCreate) {
-    icqq.app!.logger.info('请先完善icqq.yaml中的配置后继续');
-    process.exit();
-  }
+const initBot = (configs:QQConfig[]) => {
   adapterConfig = configs;
   for (const { uin, password: _, ...config } of configs) {
     const client=new Client(uin,config)
@@ -69,9 +64,24 @@ const messageHandler = (bot: Adapter.Bot<Client>, event: QQMessageEvent) => {
   message.raw_message = sendableToString(event.message);
   if (!(event instanceof GuildMessageEvent)) {
     message.message_type = event.message_type as any
-    message.from_id=event.message_type==='private'?event.user_id+'':
+    message.from_id=event.message_type==='private'?event.sender.user_id+'':
       event.message_type==='group'?event.group_id+'':event.discuss_id+''
-    message.sender=event.sender
+    const master=adapterConfig.find((b=>b.uin===bot.uin))?.master
+    message.sender={
+      ...event.sender,
+      permissions:[
+        master && event.user_id===master && 'master',
+        event.message_type==='group' && event.member?.is_owner && 'owner',
+        event.message_type==='group' && event.member?.is_admin && 'admin'
+      ].filter(Boolean) as string[]
+    }
+    if(event.source){
+      message.quote={
+        message_id:event.message_type==='private'?genDmMessageId(event.source.user_id,event.source.seq,event.source.rand,event.source.time,event.source.user_id===bot.uin?1:0):
+          event.message_type==='group'?genGroupMessageId(event.group_id,event.source.user_id,event.source.seq,event.source.rand,event.source.time):'',
+        message:event.source.message as string
+      }
+    }
   }else{
     message.from_id=`${event.guild_id}:${event.channel_id}`
     message.sender={

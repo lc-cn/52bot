@@ -3,6 +3,7 @@
     "compilerOptions": {
         "rootDir": "src",
         "declaration": false,
+        "experimentalDecorators": true,
         "baseUrl": ".",
         "paths": {
             "@/*": ["src/*"],

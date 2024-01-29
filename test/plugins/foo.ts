@@ -1,11 +1,16 @@
-import {useCommand} from '52bot';
-import { ICQQAdapter } from '@52bot/icqq';
-export const name='我不是'
-useCommand('foo')
-.action<ICQQAdapter>(({bot})=>{
+import {command,options,middleware} from '52bot';
+options({
+  name:'foo'
+})
+command('foo')
+.action(({bot})=>{
   return 'bar'
 })
-useCommand('bar')
+command('bar')
   .action(()=>{
-    return '我不知道该说啥了'
+    return '我不知道该说啥呀'
   })
+middleware((a,b,e)=>{
+
+})
+

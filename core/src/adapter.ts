@@ -26,11 +26,11 @@ export class Adapter<I extends object= object,M = {}> extends EventEmitter {
     if(!bot) throw new Error(`未找到Bot:${bot_id}`)
     return bot
   }
-  mount(app: App) {
+  mount(app: App,bots:App.BotConfig[]) {
     this.emit('before-mount');
     this.logger.level=app.config.logLevel
     this.app = app;
-    this.emit('mounted');
+    this.emit('mounted',bots);
   }
   unmount() {
     this.emit('before-unmount');
@@ -80,6 +80,10 @@ export namespace Adapter{
         'mounted'():void
         'unmounted'():void
         'start'():void
+    }
+    export interface Config<T extends keyof App.Adapters=keyof App.Adapters>{
+      name:T
+      bots:App.BotConfig<T>[]
     }
     export type SendMsgFn=(bot_id:string,target_id:string,target_type:Message.Type,message:string)=>Promise<any>
     export type Bot<T=object> = {

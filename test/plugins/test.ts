@@ -1,14 +1,14 @@
 import { Plugin } from '52bot';
 import '@52bot/plugin-sandbox'
-const test=new Plugin('测试插件2')
+const test=new Plugin('测试插件')
 test.command('test-confirm')
   .action(async (runtime)=>{
     const isConfirm=await runtime.prompt.confirm('确认吗')
     return `${isConfirm?'已确认':'已取消'}:${isConfirm} ${typeof isConfirm}`
   })
 test.command('test-text')
-  .action(async (runtime)=>{
-    const input=await runtime.prompt.text('请输入文本')
+  .action(async ({ adapter,prompt })=>{
+    const input=await prompt.text('请输入文本')
     return `inputResult:${input} ${typeof input}`
   })
 test.command('test-number')

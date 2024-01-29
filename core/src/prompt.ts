@@ -1,4 +1,4 @@
-import { Adapter, AdapterBot, AdapterReceive } from '@/adapter';
+import { Adapter } from '@/adapter';
 import { Middleware } from '@/middleware';
 import { Bot } from '@/types';
 import { Message } from '@/message';

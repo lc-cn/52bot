@@ -30,11 +30,24 @@ for (const key of args) {
 	}
 }
 if (defaultArgv.init) {
-	fs.writeFileSync(path.resolve(process.cwd(), `.${defaultArgv.mode}.env`), "adapters = qq\n" +
-		"builtPlugins = commandParser,hmr,echo\n" +
-		"logLevel = info\n" +
-		"modulePlugins = \n" +
-		"pluginDirs = plugins")
+	fs.writeFileSync(path.resolve(process.cwd(), `bot.config.ts`), `
+import {defineConfig} from '52bot';
+
+export default defineConfig((env)=>{
+  return {
+    adapters:[],
+    logLevel:'info',
+    bots:[],
+    plugins:[
+      'commandParser',
+      env.mode===dev && 'hmr',
+      'pluginManager',
+      'setup',
+      
+    ]
+  }
+})
+`)
 	console.log(`请在.${defaultArgv.mode}.env中配置相应参数后再次调用\`npx 52bot -m ${defaultArgv.mode}\` 启动`)
 	process.exit(0)
 }

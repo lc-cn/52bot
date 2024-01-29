@@ -7,6 +7,7 @@
         "dev": "52bot -m dev"
     },
     "dependencies": {
+        "icqq": "latest",
         "52bot": "workspace:latest",
         "@52bot/icqq": "workspace:latest",
         "@52bot/qq": "workspace:latest",
@@ -19,7 +20,9 @@
         "@52bot/plugin-jsondb": "workspace:latest",
         "@52bot/plugin-upyun": "workspace:latest",
         "@52bot/plugin-sandbox": "workspace:latest",
+        "@52bot/plugin-schedule": "workspace:latest",
         "@52bot/plugin-qa": "workspace:latest",
-        "@52bot/plugin-schedule": "workspace:latest"
+        "@52bot/plugin-guild-manage": "workspace:latest",
+        "@52bot/plugin-group-manage": "workspace:latest"
     }
 }

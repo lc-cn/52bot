@@ -2,7 +2,7 @@
     "name": "@52bot/discord",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "scripts": {
         "build": "tsc && tsc-alias"
     },
@@ -19,6 +19,8 @@
         "ts-disc-bot": "latest"
     },
     "devDependencies": {
+        "52bot": "workspace:latest",
+        "ts-disc-bot": "latest",
         "@types/node": "latest",
         "@types/ws": "latest"
     }

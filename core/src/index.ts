@@ -3,9 +3,16 @@ export * from './message'
 export * as axios from 'axios'
 export * as yaml from 'yaml'
 export {
-  useCommand,
-  useMiddleware,
+  command,
+  adapter,
+  bot,
+  sendDirectMessage,
+  sendGroupMessage,
+  sendGuildMessage,
+  sendPrivateMessage,
+  middleware,
   onMount,
+  options,
   onUnmount,
   listen
 } from './plugins/setup'

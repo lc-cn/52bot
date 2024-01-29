@@ -2,7 +2,7 @@
     "name": "@52bot/dingtalk",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "scripts": {
         "build": "tsc && tsc-alias"
     },
@@ -15,6 +15,10 @@
         "directory": "packages/adapters/dingtalk"
     },
     "dependencies": {
+        "52bot": "workspace:latest",
+        "node-dd-bot": "latest"
+    },
+    "peerDependencies": {
         "52bot": "workspace:latest",
         "node-dd-bot": "latest"
     }

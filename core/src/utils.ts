@@ -1,8 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import YAML from "yaml";
-import { Plugin } from '@/plugin';
-import { Dict } from '@/types';
+import { Merge } from '@/types';
 
 
 export function isEmpty<T>(data: T) {
@@ -134,4 +133,16 @@ export function loadYamlConfigOrCreate<T>(name:string,defaultValue:string):[T,bo
 export function saveYamlConfig<T>(name:string,config:T){
     const filePath=path.resolve(process.cwd(),name)
     fs.writeFileSync(filePath,YAML.stringify(config))
+}
+export function deepMerge<First, Second>(first: First, second: Second): Merge<First, Second> {
+    if(!first || typeof first!==typeof second || typeof first!=='object') return first as any
+    const result = (Array.isArray(first)?[]:{}) as Merge<First, Second>;
+    for(const key of Reflect.ownKeys(first)){
+        Reflect.set(result,key,Reflect.get(first,key))
+    }
+    for (const key of Reflect.ownKeys(second as object)) {
+        if(Reflect.has(result,key)) Reflect.set(result,key,deepMerge(Reflect.get(result,key),Reflect.get(second as object,key)))
+        else Reflect.set(result,key,Reflect.get(second as object,key))
+    }
+    return result;
 }

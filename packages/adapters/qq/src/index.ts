@@ -1,19 +1,22 @@
-import { Adapter, loadYamlConfigOrCreate, Message } from '52bot';
+import { Adapter, Message } from '52bot';
 import { sendableToString, formatSendable } from './utils';
 import {
   Bot,
   PrivateMessageEvent,
   GroupMessageEvent,
   GuildMessageEvent,
-  DirectMessageEvent,
-  Sendable, Quotable,
+  Sendable, Quotable, Intent,
 } from 'qq-group-bot';
-import * as fs from 'fs';
-import * as path from 'path';
-type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent | DirectMessageEvent;
-type QQAdapterConfig = QQConfig[];
+type QQMessageEvent = PrivateMessageEvent | GroupMessageEvent | GuildMessageEvent;
 export type QQAdapter = typeof qq;
 const qq = new Adapter<Adapter.Bot<Bot>, QQMessageEvent>('qq');
+declare module '52bot'{
+  namespace App{
+    interface Adapters {
+      qq:QQConfig
+    }
+  }
+}
 qq.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
   const bot=qq.pick(bot_id)
   let msg:Sendable=await qq.app!.renderMessage(message as string,source)
@@ -23,7 +26,11 @@ qq.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
     case 'group':
       return bot.sendGroupMessage(target_id,msg,quote)
     case 'private':
-      return bot.sendPrivateMessage(target_id,msg,quote)
+      const [sub_type,user_id]=target_id.split(':')
+      if(sub_type==='friend'){
+        return bot.sendPrivateMessage(user_id,msg,quote)
+      }
+      return bot.sendDirectMessage(user_id,message,quote)
     case 'direct':
       return bot.sendDirectMessage(target_id,msg,quote)
     case 'guild':
@@ -43,17 +50,10 @@ type QQConfig = {
   timeout?: number;
   public?: boolean;
 };
-const initBot = () => {
-  const [configs, isCreate] = loadYamlConfigOrCreate<QQAdapterConfig>('qq.yaml',
-    fs.readFileSync(path.join(__dirname,'qq-default.yaml'),'utf8')
-  );
-  if (isCreate) {
-    qq.app!.logger.info('请先完善qq.yaml中的配置后继续');
-    process.exit();
-  }
+const initBot = (configs:QQConfig[]) => {
   for (const { private: isPrivate, group, public: isPublic, ...config } of configs) {
     const botConfig: Bot.Config = {
-      logLevel: qq.app!.config.logLevel,
+      logLevel: qq.app!.config.logLevel as any,
       ...config,
       intents: [
         group && 'GROUP_AT_MESSAGE_CREATE',
@@ -66,7 +66,7 @@ const initBot = () => {
         'DIRECT_MESSAGE',
         'INTERACTION',
         isPublic && 'PUBLIC_GUILD_MESSAGES',
-      ].filter(Boolean) as string[],
+      ].filter(Boolean) as Intent[],
     };
     const bot=new Bot(botConfig)
     Object.defineProperty(bot,'unique_id',{
@@ -83,16 +83,13 @@ const messageHandler = (bot: Adapter.Bot<Bot>, event: QQMessageEvent) => {
   message.raw_message = sendableToString(event.message).trim();
   message.message_type=event.message_type
   message.sender=event.sender as any
+  if(event.source){
+    message.quote=event.source
+  }
   switch (event.message_type){
-    case 'direct':
-      Object.defineProperty(message,'from_id',{
-        value:event.guild_id,
-        writable: false,
-      })
-      break;
       case 'private':
         Object.defineProperty(message,'from_id',{
-          value:event.user_id,
+          value:`${event.sub_type}:${event.guild_id||event.user_id}`,
           writable: false,
         })
         break;

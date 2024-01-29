@@ -1,12 +1,16 @@
 {
   "name": "52bot",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "main": "lib/index.js",
   "bin": "./bin.js",
   "scripts": {
     "compile": "tsc && tsc-alias",
     "build": "npm run compile && npm run dtsc",
     "dtsc": "dtsc --project tsconfig.dtsc.json"
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./decorators": "./lib/decorators/index.js"
   },
   "files": [
     "lib",

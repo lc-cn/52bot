@@ -3,8 +3,16 @@ import { Prompt } from '@/prompt';
 import { Adapter, AdapterBot, AdapterReceive } from '@/adapter';
 export interface MessageBase{
     from_id:string
+    group_id?:string|number
+    guild_id?:string|number
+    channel_id?:string|number
+    discuss_id?:string|number
     sender:MessageSender
     raw_message:string
+    quote?:{
+        message_id:string
+        message?:string
+    }
     message_type:Message.Type
 }
 export interface Message<AD extends Adapter=Adapter> extends MessageBase{

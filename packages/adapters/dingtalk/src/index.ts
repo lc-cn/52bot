@@ -1,8 +1,15 @@
-import { Adapter, loadYamlConfigOrCreate, Message,toYamlString } from '52bot';
+import { Adapter, Message } from '52bot';
 import { Bot,Sendable,PrivateMessageEvent,GroupMessageEvent } from 'node-dd-bot';
 import { formatSendable, sendableToString } from '@/utils';
 type DingMsgEvent=PrivateMessageEvent|GroupMessageEvent
 const dingTalkAdapter=new Adapter<Adapter.Bot<Bot>,DingMsgEvent>('dingtalk')
+declare module '52bot'{
+  namespace App{
+    interface Adapters {
+      dingtalk:Bot.Options
+    }
+  }
+}
 dingTalkAdapter.define('sendMsg',async (bot_id,target_id,target_type,message,source)=>{
   const bot=dingTalkAdapter.pick(bot_id)
   let msg:Sendable=await dingTalkAdapter.app!.renderMessage(message as string,source)
@@ -16,24 +23,7 @@ dingTalkAdapter.define('sendMsg',async (bot_id,target_id,target_type,message,sou
       throw new Error(`Dingtalk适配器暂不支持发送${target_type}类型的消息`)
   }
 })
-const initBot = () => {
-  const [configs, isCreate] = loadYamlConfigOrCreate<Bot.Options[]>('dingtalk.yaml',
-    toYamlString([
-      {
-        clientId:'',
-        clientSecret:'',
-        reconnect_interval:3000,
-        max_reconnect_count:10,
-        heartbeat_interval:3000,
-        request_timeout:5000,
-        sandbox:true,
-      }
-    ])
-  );
-  if (isCreate) {
-    dingTalkAdapter.app!.logger.info('请先完善dingtalk.yaml中的配置后继续');
-    process.exit();
-  }
+const initBot = (configs:Bot.Options[]) => {
   for (const config of configs) {
     const bot=new Bot(config)
     Object.defineProperty(bot,'unique_id',{

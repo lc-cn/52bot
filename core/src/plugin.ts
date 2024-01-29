@@ -4,10 +4,14 @@ import { Middleware } from "@/middleware";
 import {getCallerStack, remove} from "@/utils";
 import {App} from "@/app";
 import { AppKey, Required } from '@/constans';
-import { Dict, NumString } from '@/types';
+import { Dict } from '@/types';
 import path from 'path';
+import { Adapter } from '@/adapter';
+export interface Plugin extends Plugin.Options{}
 export class Plugin extends EventEmitter {
+    public name:string
     disposes: Function[] = [];
+    priority:number
     isMounted: boolean = false;
     [Required]:(keyof App.Services)[]=[];
     filePath:string;
@@ -28,12 +32,20 @@ export class Plugin extends EventEmitter {
     get commandList() {
         return [...this.commands.values()]
     }
-    constructor(public name: string, options: Plugin.Options={}){
+    constructor(name?:string)
+    constructor(options?:Plugin.Options)
+    constructor(param: Plugin.Options|string={}){
         super()
+        const options:Plugin.Options=typeof param==='string'?{
+            name:param
+          }:param
         this.adapters=options.adapters
+        this.priority=options.priority||1
+        this.desc=options.desc
         const stack=getCallerStack()
         stack.shift() // 排除当前文件调用
         this.filePath=stack[0]?.getFileName()!;
+        this.name=options.name||path.basename(this.filePath)
         return new Proxy(this,{
             get(target:Plugin,key){
                 if(!target.app||Reflect.has(target,key)) return Reflect.get(target,key)
@@ -59,9 +71,9 @@ export class Plugin extends EventEmitter {
         if (this.status === 'disabled') return
         this.status = 'disabled'
     }
-    middleware(middleware: Middleware, before?: boolean) {
+    middleware<AD extends Adapter=Adapter>(middleware: Middleware<AD>, before?: boolean) {
         const method: 'push' | 'unshift' = before ? 'unshift' : 'push'
-        this.middlewares[method](middleware)
+        this.middlewares[method](middleware as Middleware)
         this.disposes.push(() => remove(this.middlewares, middleware))
         return this
     }
@@ -177,11 +189,15 @@ export interface Plugin extends App.Services{
 export namespace Plugin {
     export interface Options {
         /**
+         * 插件名称
+         */
+        name?:string
+        /**
          * 支持的适配器
          */
         adapters?:string[]
         /**
-         * 描述
+         * 插件描述
          */
         desc?: string
         /**

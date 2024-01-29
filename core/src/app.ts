@@ -3,14 +3,14 @@ import { Logger, getLogger } from 'log4js';
 import { Middleware } from '@/middleware';
 import { Plugin, PluginMap } from '@/plugin';
 import { Bot, Dict, LogLevel } from '@/types';
-import { loadModule, remove } from '@/utils';
+import { deepMerge, loadModule, remove } from '@/utils';
 import { AppKey, Required } from '@/constans';
 import path from 'path';
 import { Adapter, AdapterBot, AdapterReceive } from '@/adapter';
 import { Message } from '@/message';
-export function defineConfig(config:App.Config):App.Config
-export function defineConfig(initialFn:(env:typeof process.env & {mode:string})=>App.Config):(env:typeof process.env & {mode:string})=>App.Config
-export function defineConfig(config:App.Config|((env:typeof process.env & {mode:string})=>App.Config)){
+export function defineConfig(config:Partial<App.Config>):Partial<App.Config>
+export function defineConfig(initialFn:(env:typeof process.env & {mode:string})=>Partial<App.Config>):(env:typeof process.env & {mode:string})=>Partial<App.Config>
+export function defineConfig(config:Partial<App.Config>|((env:typeof process.env & {mode:string})=>Partial<App.Config>)){
   return config
 }
 export class App extends EventEmitter {
@@ -20,7 +20,7 @@ export class App extends EventEmitter {
   plugins: PluginMap = new PluginMap();
   renders: Message.Render[] = [];
 
-  constructor(public config: App.Options) {
+  constructor(public config: App.Config) {
     super();
     this.logger.level = config.logLevel;
     this.handleMessage = this.handleMessage.bind(this);
@@ -47,17 +47,39 @@ export class App extends EventEmitter {
     }
     return template;
   }
-
-  initAdapter(adapter_names: string[]) {
-    for (const name of adapter_names) {
-      if (!name) continue;
-      try {
-        const adapter = Adapter.load(name);
-        this.adapters.set(name, adapter);
-        adapter.mount(this);
-        this.logger.mark(`适配器： ${name} 已加载`);
-      } catch (e) {
-        this.logger.error(e);
+  initPlugins(){
+    const plugins=Array.isArray(this.config.plugins)?this.config.plugins.map(item=>{
+      return {
+        name:typeof item==='string'?item:item.name,
+        install:typeof item !=='string'?typeof item==='function'?item:item.install:undefined,
+        enable:true,
+      }
+    }):Object.entries(this.config.plugins).map(([name,info])=>{
+      return {
+        name,
+        install:typeof info!=='boolean'?typeof info==='function'?info:info.install:undefined,
+        enable:typeof info==='boolean'?info:true,
+      }
+    })
+    for(const plugin of plugins){
+      if(!plugin.install){
+        this.loadPlugin(plugin.name!)
+      }else {
+        this.use(plugin as Plugin.InstallObject)
+      }
+      if(!plugin.enable) this.disable(plugin.name!)
+    }
+  }
+  initAdapter(adapters: Adapter[]) {
+    for (const adapter of adapters) {
+      this.adapters.set(adapter.name,adapter)
+      try{
+        const bots=(this.config.bots||=[]).filter(bot=>bot.adapter===adapter.name)
+        adapter.mount(this,bots);
+        this.logger.mark(`适配器： ${adapter.name} 已加载`);
+      }catch (e){
+        this.logger.error(`适配器： ${adapter.name} 加载失败`,e);
+        this.adapters.delete(adapter.name)
       }
     }
   }
@@ -70,7 +92,9 @@ export class App extends EventEmitter {
   }
 
   get pluginList() {
-    return [...this.plugins.values()].filter(p => p.status === 'enabled');
+    return [...this.plugins.values()].filter(p => p.status === 'enabled').sort((a,b)=>{
+      return a.priority-b.priority
+    });
   }
 
   get commandList() {
@@ -165,13 +189,16 @@ export class App extends EventEmitter {
 
   use(init: Plugin.InstallObject, config?: Plugin.Options): this
   use(init: Plugin.InstallFn, config?: Plugin.Options): this
-  use(init: Plugin.InstallObject | Plugin.InstallFn, config?: Plugin.Options): this {
+  use(init: Plugin.InstallObject | Plugin.InstallFn, config: Plugin.Options={}): this {
     let name = typeof init === 'function' ? this.plugins.generateId : init.name || this.plugins.generateId;
     const initFn = typeof init === 'function' ? init : init.install;
     if(!initFn){
       throw new Error('插件初始化函数不能为空')
     }
-    const plugin = new Plugin(name, config);
+    const plugin = new Plugin({
+      name,
+      ...config
+    });
     this.mount(plugin);
     try {
       initFn(plugin);
@@ -249,7 +276,8 @@ export class App extends EventEmitter {
   }
 
   async start() {
-    this.initAdapter(this.config.adapters);
+    this.initPlugins();
+    this.initAdapter(this.config.adapters||=[]);
     for (const [name, adapter] of this.adapters) {
       adapter.emit('start');
       this.logger.info(`适配器： ${name} 已启动`);
@@ -319,14 +347,10 @@ export interface App extends App.Services {
   removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>): this;
 
 }
-
+export function createApp(options:Partial<App.Config>){
+  return new App(deepMerge(options,App.defaultConfig) as App.Config)
+}
 export namespace App {
-  export interface Options {
-    adapters: string[];
-    configFile?:string;
-    pluginDirs: string[];
-    logLevel: LogLevel;
-  }
 
   export const adapters: Map<string, Adapter> = new Map<string, Adapter>();
 
@@ -347,10 +371,26 @@ export namespace App {
   }
 
   export interface Config {
-    plugins: (string|Plugin.InstallObject|Plugin.InstallFn)[] | Dict<string|Plugin.InstallObject|Plugin.InstallFn>;
+    logLevel:LogLevel|string
+    adapters:Adapter[]
+    pluginDirs?:string[]
+    bots:BotConfig[]
+    plugins: (string|Plugin.InstallObject|Plugin.InstallFn)[] | Dict<boolean|Plugin.InstallObject|Plugin.InstallFn>;
   }
-
-  export interface Services {
+  export const defaultConfig:Config={
+    logLevel:'info',
+    adapters:[],
+    bots:[],
+    plugins:[],
+    pluginDirs:[],
+  }
+  export interface Adapters{
 
   }
+  export interface Services{
+
+  }
+  export type BotConfig<T extends keyof Adapters=keyof Adapters>=({
+    adapter:T|string
+  } & Adapters[T]) | Dict
 }

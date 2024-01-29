@@ -15,7 +15,10 @@
         "format": "prettier packages --write",
         "build": "node ./scripts/build.js",
         "clean": "node ./scripts/clean.js",
-        "pub": "node ./scripts/publish.js"
+        "pub": "node ./scripts/publish.js",
+        "docs:dev": "vitepress dev docs --port 5566",
+        "docs:build": "vitepress build docs",
+        "docs:serve": "vitepress serve docs"
     },
     "engines": {
         "node": ">=14",
@@ -38,6 +41,8 @@
         "eslint-config-prettier": "latest",
         "eslint-plugin-prettier": "latest",
         "husky": "^8.0.3",
+        "vitepress": "1.0.0-rc.39",
+        "vue": "^3.4.15",
         "latest-version": "^5.0.0",
         "prettier": "^3.1.0",
         "rimraf": "^5.0.5",
