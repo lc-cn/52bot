@@ -39,6 +39,7 @@ const messageHandler = (bot: Adapter.Bot<Bot>, event: DingMsgEvent) => {
   const message=Message.fromEvent(dingTalkAdapter,bot,event)
   message.raw_message = sendableToString(event.message).trim();
   message.from_id=event instanceof PrivateMessageEvent?event.user_id:event.group_id
+  message.message_type=event.message_type
   message.sender=event.sender
 
   const commands = dingTalkAdapter.app!.getSupportCommands(dingTalkAdapter, bot, message);

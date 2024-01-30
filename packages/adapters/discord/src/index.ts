@@ -42,6 +42,7 @@ const messageHandler = (bot: Adapter.Bot<Bot>, event: DingTalkMessageEvent) => {
   message.raw_message = sendableToString(event.message).trim();
   message.from_id=event instanceof DirectMessageEvent?event.user_id:event.channel_id
   message.sender=event.sender as any
+  message.message_type=event.message_type
   const commands = discordAdapter.app!.getSupportCommands(discordAdapter, bot, message);
   const matchReg = new RegExp(`^/(${commands.map(c => c.name).join('|')})`);
   if (message.raw_message.match(matchReg)) message.raw_message = message.raw_message.slice(1);

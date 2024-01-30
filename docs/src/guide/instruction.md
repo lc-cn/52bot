@@ -2,7 +2,7 @@
 layout: doc
 ---
 # 简介
-## 1. 什么是 “qq-group-bot” ?
+## 1. 什么是 “52bot” ?
 `qq-group-bot` 是基于 `NodeJS` 编写的 qq官方机器人 开发SDK，它提供了一套 API 和工具，可以帮助开发者构建和使用 QQ 机器人。
 
 使用 `qq-group-bot`，开发者可以通过编写 JavaScript 或 TypeScript 代码来实现 QQ 群机器人的功能，如接收和发送消息、管理频道成员、频道信息等。该 SDK 提供了丰富的功能和事件回调，方便开发者根据自己的需求进行扩展和定制。

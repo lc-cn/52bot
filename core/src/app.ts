@@ -218,7 +218,7 @@ export class App extends EventEmitter {
       const mod=loadModule<any>(entry)
       if(mod instanceof Plugin) plugin=mod
       else plugin=this.plugins.getWithPath(entry)!
-      if(typeof mod==='function' || mod['install']==='function') return this.use(mod)
+      if(typeof mod==='function' || typeof mod['install']==='function') return this.use(mod)
       if(!plugin) throw new Error(`"${entry}" is not a valid plugin`)
       if(this.plugins.has(plugin.name)) return this
     }

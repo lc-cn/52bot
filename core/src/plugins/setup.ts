@@ -1,6 +1,7 @@
 import { Adapter, App, ArgsType, Command, getCallerStack, Message, Middleware } from '@';
 import {Plugin} from '@/plugin'
 import * as path from 'path';
+import process from 'process';
 const setupPlugin=new Plugin('setup');
 const resolveCallerPlugin=():[boolean,Plugin]=>{
   const callerStack=getCallerStack().map(caller=>caller.getFileName())
@@ -14,6 +15,19 @@ const resolveCallerPlugin=():[boolean,Plugin]=>{
   plugin=new Plugin(fileName)
   plugin.setup=true
   plugin.filePath=filePath
+
+  const prefixArr=[
+    path.join(process.cwd(), 'node_modules'),
+    path.join(__dirname),
+    process.cwd(),
+  ]
+  plugin.name=plugin.filePath
+  for(const prefix of prefixArr){
+    plugin.name=plugin.name.replace(`${prefix}${path.sep}`,'')
+  }
+  plugin.name=plugin.name.replace(`${path.sep}index`,'')
+    .replace(/\.[cm]?[tj]s$/,'')
+    .replace(`${path.sep}lib`,'')
   return [true,plugin]
 }
 const getOrCreatePlugin=(options?:Plugin.Options)=>{
