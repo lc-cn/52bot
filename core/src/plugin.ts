@@ -7,6 +7,7 @@ import { AppKey, Required } from '@/constans';
 import { Dict } from '@/types';
 import path from 'path';
 import { Adapter } from '@/adapter';
+import * as process from 'process';
 export interface Plugin extends Plugin.Options{}
 export class Plugin extends EventEmitter {
     public name:string
@@ -16,15 +17,22 @@ export class Plugin extends EventEmitter {
     [Required]:(keyof App.Services)[]=[];
     filePath:string;
     setup:boolean=false;
-    private lifecycle:Dict<Function[]>={}
+    private lifecycle:Dict<Plugin.CallBack[]>={}
     public adapters?: string[]
     status: Plugin.Status = 'enabled'
     services:Map<string|symbol,any>=new Map<string|symbol,any>()
     commands: Map<string, Command> = new Map<string, Command>()
     middlewares: Middleware[] = [];
+    private _name?:string
     [AppKey]: App|null=null
     get app(){
         return this[AppKey]
+    }
+    get display_name(){
+        return this._name||this.name
+    }
+    set display_name(name:string){
+        this._name=name
     }
     get statusText(){
         return Plugin.StatusText[this.status]
@@ -45,7 +53,19 @@ export class Plugin extends EventEmitter {
         const stack=getCallerStack()
         stack.shift() // 排除当前文件调用
         this.filePath=stack[0]?.getFileName()!;
-        this.name=options.name||path.basename(this.filePath)
+        this.display_name=options.name!
+        const prefixArr=[
+          path.join(process.cwd(), 'node_modules'),
+          path.join(__dirname,'plugins'),
+          process.cwd(),
+        ]
+        this.name=this.filePath
+        for(const prefix of prefixArr){
+            this.name=this.name.replace(`${prefix}${path.sep}`,'')
+        }
+        this.name=this.name.replace(`${path.sep}index`,'')
+          .replace(/\.[cm]?[tj]s$/,'')
+          .replace(`${path.sep}lib`,'')
         return new Proxy(this,{
             get(target:Plugin,key){
                 if(!target.app||Reflect.has(target,key)) return Reflect.get(target,key)
@@ -136,19 +156,19 @@ export class Plugin extends EventEmitter {
     findCommand(name: string) {
         return this.commandList.find(command => command.name === name);
     }
-    mounted(callback:Function){
+    mounted(callback:Plugin.CallBack){
         const lifeCycles=this.lifecycle["mounted"]||=[]
         lifeCycles.push(callback)
     }
-    beforeMount(callback:Function){
+    beforeMount(callback:Plugin.CallBack){
         const lifeCycles=this.lifecycle["beforeMount"]||[]
         lifeCycles.push(callback)
     }
-    unmounted(callback:Function){
+    unmounted(callback:Plugin.CallBack){
         const lifeCycles=this.lifecycle["unmounted"]||[]
         lifeCycles.push(callback)
     }
-    beforeUnmount(callback:Function){
+    beforeUnmount(callback:Plugin.CallBack){
         const lifeCycles=this.lifecycle["beforeUnmount"]||[]
         lifeCycles.push(callback)
     }
@@ -187,6 +207,7 @@ export interface Plugin extends App.Services{
     removeAllListeners<S extends string | symbol>(event: S & Exclude<string | symbol, keyof App.EventMap>): this
 }
 export namespace Plugin {
+    export type CallBack=(app:App)=>any
     export interface Options {
         /**
          * 插件名称

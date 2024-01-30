@@ -65,15 +65,15 @@ const methods={
   sendDirectMessage(platform:string,bot_id:string,guild_id:string,message:string,source?:Message){
     return this.adapter(platform)?.sendMsg(bot_id,guild_id,'direct',message,source)
   },
-  onMount(callback:Function){
+  onMount(callback:Plugin.CallBack){
     setupPlugin.mounted(callback)
-    if(setupPlugin.isMounted) callback();
+    if(setupPlugin.isMounted) callback(setupPlugin.app!);
     return this
   },
-  onUnmount(callback:Function){
+  onUnmount(callback:Plugin.CallBack){
     const plugin=getOrCreatePlugin()
     plugin.unmounted(callback)
-    if(!plugin.isMounted) callback();
+    if(!plugin.isMounted) callback(setupPlugin.app!);
     return this
   },
 

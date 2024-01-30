@@ -146,3 +146,12 @@ export function deepMerge<First, Second>(first: First, second: Second): Merge<Fi
     }
     return result;
 }
+
+export const wrapExport=(filePath:string)=>{
+    const result=require(filePath)
+    if(result.default) {
+        const {default:main,...other}=result
+        return Object.assign(main,other)
+    }
+    return result
+}

@@ -8,7 +8,7 @@ PM.command('插件列表')
   .action((runtime) => {
     return segment('text', {
       text: [...PM.app!.pluginList].map((plugin, index) => {
-        return `${index + 1} ${plugin.name}(${plugin.statusText})`;
+        return `${index + 1} ${plugin.display_name}(${plugin.statusText})`;
       }).join('\n'),
     });
   });

@@ -47,8 +47,8 @@ export class App extends EventEmitter {
     }
     return template;
   }
-  initPlugins(){
-    const plugins=Array.isArray(this.config.plugins)?this.config.plugins.map(item=>{
+  initPlugins(pluginConfig:App.Config['plugins']){
+    const plugins=Array.isArray(pluginConfig)?pluginConfig.map(item=>{
       return {
         name:typeof item==='string'?item:item.name,
         install:typeof item !=='string'?typeof item==='function'?item:item.install:undefined,
@@ -140,7 +140,7 @@ export class App extends EventEmitter {
       for (const [name, service] of (plugin as Plugin).services) {
         this.emit('service-register', name, service);
       }
-      this.logger.info(`插件：${plugin.name} 已加载。`);
+      this.logger.info(`插件：${plugin.display_name} 已加载。`);
     })
     this.emit('plugin-mounted',plugin);
     plugin.isMounted=true
@@ -176,7 +176,7 @@ export class App extends EventEmitter {
       const method = event.split('-')[1];
       if (plugin && plugin?.['lifecycle']?.[method]?.length) {
         for (const lifecycle of plugin['lifecycle'][method]) {
-          lifecycle();
+          lifecycle(this);
         }
       }
     }
@@ -190,7 +190,7 @@ export class App extends EventEmitter {
   use(init: Plugin.InstallObject, config?: Plugin.Options): this
   use(init: Plugin.InstallFn, config?: Plugin.Options): this
   use(init: Plugin.InstallObject | Plugin.InstallFn, config: Plugin.Options={}): this {
-    let name = typeof init === 'function' ? this.plugins.generateId : init.name || this.plugins.generateId;
+    let name = typeof init === 'function' ? this.plugins.generateId : init.name ||= this.plugins.generateId;
     const initFn = typeof init === 'function' ? init : init.install;
     if(!initFn){
       throw new Error('插件初始化函数不能为空')
@@ -270,13 +270,13 @@ export class App extends EventEmitter {
     for (const [name, service] of plugin.services) {
       this.emit('service-destroy', name, service);
     }
-    this.logger.info(`插件：${plugin.name} 已卸载。`);
+    this.logger.info(`插件：${plugin.display_name} 已卸载。`);
     this.emit('plugin-unmounted', plugin);
     return this;
   }
 
   async start() {
-    this.initPlugins();
+    this.initPlugins(this.config.plugins);
     this.initAdapter(this.config.adapters||=[]);
     for (const [name, adapter] of this.adapters) {
       adapter.emit('start');
@@ -300,7 +300,7 @@ export class App extends EventEmitter {
         this.mount(loadPath)
         loaded=true
       }catch (e){
-        error=e
+        if(!error || String(Reflect.get(error,'message')).startsWith('Cannot find')) error= e
         this.logger.debug(`try load plugin(${name}) failed. (from: ${loadPath})`)
       }
     }
