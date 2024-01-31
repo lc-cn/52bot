@@ -17,9 +17,9 @@ const resolveCallerPlugin=():[boolean,Plugin]=>{
   plugin.filePath=filePath
 
   const prefixArr=[
-    path.join(process.cwd(), 'node_modules'),
     path.join(__dirname),
-    process.cwd(),
+    path.join(process.cwd(), 'node_modules'),
+      ...(setupPlugin.app?.config.pluginDirs||[]).map(dir=>path.resolve(process.cwd(), dir)),
   ]
   plugin.name=plugin.filePath
   for(const prefix of prefixArr){

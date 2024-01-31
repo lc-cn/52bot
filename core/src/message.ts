@@ -78,7 +78,7 @@ export namespace Message{
         return result
     }
 }
-export const segment:Message.DefineSegment=function(type, data){if(type==='text') return data.text
+export const segment:Message.DefineSegment=function(type, data){
     return `<${type},${Object.entries(data).map(([key,value])=>{
         return `${key}=${wrap(JSON.stringify(value))}`
     }).join()}>`

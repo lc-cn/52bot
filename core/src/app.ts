@@ -222,6 +222,10 @@ export class App extends EventEmitter {
       if(!plugin) throw new Error(`"${entry}" is not a valid plugin`)
       if(this.plugins.has(plugin.name)) return this
     }
+    const userPluginDirs=(this.config.pluginDirs||[]).map(dir=>path.resolve(process.cwd(),dir))
+    for(const pluginDir of userPluginDirs){
+      plugin.name=plugin.name.replace(`pluginDir${path.sep}`,'')
+    }
     this.plugins.set(plugin.name,plugin)
     if(plugin[Required].length){
       const requiredServices=plugin[Required]
