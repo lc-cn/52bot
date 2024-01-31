@@ -48,7 +48,7 @@ const getOrCreatePlugin=(options?:Plugin.Options)=>{
     return plugin
   }
 }
-const methods={
+export const useContext={
   command<S extends Command.Declare>(
     decl: S,
     initialValue?: ArgsType<Command.RemoveFirst<S>>,
@@ -60,6 +60,9 @@ const methods={
     const plugin=getOrCreatePlugin()
     plugin.middleware(middleware);
     return this
+  },
+  get plugin(){
+    return getOrCreatePlugin()
   },
   adapter(platform:string){
     return setupPlugin.app?.adapters.get(platform)
@@ -105,16 +108,16 @@ const methods={
     return this
   }
 }
-export const adapter=methods.adapter.bind(methods)
-export const bot=methods.bot.bind(methods)
-export const middleware=methods.middleware.bind(methods)
-export const command=methods.command.bind(methods)
-export const sendGroupMessage=methods.sendGroupMessage.bind(methods)
-export const sendPrivateMessage=methods.sendPrivateMessage.bind(methods)
-export const sendGuildMessage=methods.sendGuildMessage.bind(methods)
-export const sendDirectMessage=methods.sendDirectMessage.bind(methods)
-export const onMount=methods.onMount.bind(methods)
-export const onUnmount=methods.onUnmount.bind(methods)
-export const listen=methods.listen.bind(methods)
-export const options=methods.options.bind(methods)
+export const adapter=useContext.adapter.bind(useContext)
+export const bot=useContext.bot.bind(useContext)
+export const middleware=useContext.middleware.bind(useContext)
+export const command=useContext.command.bind(useContext)
+export const sendGroupMessage=useContext.sendGroupMessage.bind(useContext)
+export const sendPrivateMessage=useContext.sendPrivateMessage.bind(useContext)
+export const sendGuildMessage=useContext.sendGuildMessage.bind(useContext)
+export const sendDirectMessage=useContext.sendDirectMessage.bind(useContext)
+export const onMount=useContext.onMount.bind(useContext)
+export const onUnmount=useContext.onUnmount.bind(useContext)
+export const listen=useContext.listen.bind(useContext)
+export const options=useContext.options.bind(useContext)
 export default setupPlugin

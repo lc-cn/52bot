@@ -1,0 +1,28 @@
+{
+    "name": "@52bot/client",
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "version": "0.0.13",
+    "scripts": {
+        "build": "tsc && tsc-alias"
+    },
+    "files": [
+        "lib"
+    ],
+    "author": "凉菜",
+    "repository": {
+        "url": "https://github.com/lc-cn/52bot",
+        "directory": "packages/plugin/client"
+    },
+    "dependencies": {
+        "52bot": "workspace:latest",
+        "@vitejs/plugin-vue": "latest",
+        "@52bot/plugin-http-server": "workspace:latest",
+        "vue": "latest",
+        "vite": "latest"
+    },
+    "peerDependencies": {
+        "52bot": "workspace:latest",
+        "@52bot/plugin-http-server": "workspace:latest"
+    }
+}

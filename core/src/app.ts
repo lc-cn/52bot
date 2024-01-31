@@ -224,7 +224,7 @@ export class App extends EventEmitter {
     }
     const userPluginDirs=(this.config.pluginDirs||[]).map(dir=>path.resolve(process.cwd(),dir))
     for(const pluginDir of userPluginDirs){
-      plugin.name=plugin.name.replace(`pluginDir${path.sep}`,'')
+      plugin.name=plugin.name.replace(`${pluginDir}${path.sep}`,'')
     }
     this.plugins.set(plugin.name,plugin)
     if(plugin[Required].length){

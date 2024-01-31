@@ -6,6 +6,7 @@ export {
   command,
   adapter,
   bot,
+  useContext,
   sendDirectMessage,
   sendGroupMessage,
   sendGuildMessage,
