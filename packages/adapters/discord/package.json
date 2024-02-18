@@ -1,27 +1,27 @@
 {
-    "name": "@52bot/discord",
-    "main": "lib/index.js",
-    "types": "lib/index.d.ts",
-    "version": "0.0.5",
-    "scripts": {
-        "build": "tsc && tsc-alias"
-    },
-    "files": [
-        "lib"
-    ],
-    "author": "凉菜",
-    "repository": {
-        "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/adapters/discord"
-    },
-    "dependencies": {
-        "52bot": "workspace:latest",
-        "ts-disc-bot": "latest"
-    },
-    "devDependencies": {
-        "52bot": "workspace:latest",
-        "ts-disc-bot": "latest",
-        "@types/node": "latest",
-        "@types/ws": "latest"
-    }
+  "name": "@52bot/discord",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "version": "0.0.6",
+  "scripts": {
+    "build": "tsc && tsc-alias"
+  },
+  "files": [
+    "lib"
+  ],
+  "author": "凉菜",
+  "repository": {
+    "url": "https://github.com/lc-cn/52bot",
+    "directory": "packages/adapters/discord"
+  },
+  "dependencies": {
+    "52bot": "latest",
+    "ts-disc-bot": "latest"
+  },
+  "devDependencies": {
+    "52bot": "latest",
+    "ts-disc-bot": "latest",
+    "@types/node": "latest",
+    "@types/ws": "latest"
+  }
 }

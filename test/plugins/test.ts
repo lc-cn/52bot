@@ -46,13 +46,13 @@ test.command('test-pick')
     return `inputResult:${input} ${typeof input}`
   })
 test.mounted(()=>{
-  test.defineComponent({
+  test.component({
     name:'test2',
     render(_,context){
-      return `<slot/> 我在这儿`
+      return `<slot/>,我在这儿`
     }
   })
-  test.defineComponent({
+  test.component({
     name:'test',
     props:{
       who:{
@@ -61,7 +61,7 @@ test.mounted(()=>{
       }
     },
     render(props,context){
-      return `hello ${context.who}`
+      return `hello!${context.who}`
     }
   })
 })

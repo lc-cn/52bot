@@ -14,6 +14,7 @@
         "@52bot/dingtalk": "workspace:latest",
         "@52bot/discord": "workspace:latest",
         "@52bot/onebot-11": "workspace:latest",
+        "@52bot/wechat": "workspace:latest",
         "@52bot/client": "workspace:latest",
         "@52bot/plugin-http-server": "workspace:latest",
         "@52bot/plugin-drawer": "workspace:latest",

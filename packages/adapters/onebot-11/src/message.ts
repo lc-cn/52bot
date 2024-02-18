@@ -35,7 +35,7 @@ export namespace MessageV11 {
 
   export function parseSegmentsFromTemplate(template: string): Segment[] {
     const result: Segment[] = [];
-    const reg = /(<[!>]+>)/;
+    const reg = /(<[^>]+>)/;
     while (template.length) {
       const [match] = template.match(reg) || [];
       if (!match) break;

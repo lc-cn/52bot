@@ -1,8 +1,8 @@
 {
-    "name": "@52bot/qq",
+    "name": "@52bot/wechat",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
-    "version": "0.0.14",
+    "version": "0.0.1",
     "scripts": {
         "build": "tsc && tsc-alias"
     },
@@ -12,14 +12,14 @@
     "author": "凉菜",
     "repository": {
         "url": "https://github.com/lc-cn/52bot",
-        "directory": "packages/adapters/qq"
+        "directory": "packages/adapters/wechat"
     },
     "dependencies": {
         "52bot": "workspace:latest",
-        "qq-group-bot": "latest"
+        "lib-wechat": "latest"
     },
     "peerDependencies": {
-        "qq-group-bot": "latest",
-        "52bot": "workspace:latest"
+        "52bot": "workspace:latest",
+        "lib-wechat": "latest"
     }
 }

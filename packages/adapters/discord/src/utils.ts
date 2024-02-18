@@ -30,7 +30,7 @@ export function sendableToString(message: Sendable) {
 function parseFromTemplate(template: string | MessageElem): MessageElem[] {
   if (typeof template !== 'string') return [template];
   const result: MessageElem[] = [];
-  const reg = /(<[^>:]+>)/;
+  const reg = /(<[^>]+>)/;
   while (template.length) {
     const [match] = template.match(reg) || [];
     if (!match) break;

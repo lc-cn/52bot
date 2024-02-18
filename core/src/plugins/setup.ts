@@ -56,6 +56,10 @@ export const useContext={
     const plugin=getOrCreatePlugin()
     return plugin.command(decl,initialValue);
   },
+  required<T extends keyof App.Services>(...services:T[]){
+    const plugin=getOrCreatePlugin()
+    return plugin.required(...services)
+  },
   middleware<AD extends Adapter=Adapter>(middleware:Middleware<AD>){
     const plugin=getOrCreatePlugin()
     plugin.middleware(middleware);

@@ -5,14 +5,14 @@ import {compiler} from '@/utils';
 declare module '52bot' {
   namespace App {
     interface Services {
-      defineComponent: typeof Component.define;
+      component: typeof Component.define;
       components: typeof Component.components;
     }
   }
 }
 const sandbox = new Plugin('沙箱环境');
 sandbox.service('components', Component.components);
-sandbox.service('defineComponent', Component.define);
+sandbox.service('component', Component.define);
 const disposeArr: Function[] = [];
 sandbox.mounted(() => {
   const dispose = sandbox.app!.registerRender(async (template, $message) => {
@@ -43,7 +43,7 @@ sandbox.mounted(() => {
   disposeArr.push(dispose);
 });
 sandbox.mounted(() => {
-  sandbox.defineComponent({
+  sandbox.component({
     name: 'template',
     render(props, context) {
       const keys=Object.keys(props)
@@ -58,7 +58,7 @@ sandbox.mounted(() => {
       return '';
     },
   });
-  sandbox.defineComponent({
+  sandbox.component({
     name: 'slot',
     props: {
       name: String,
@@ -70,7 +70,7 @@ sandbox.mounted(() => {
       return context.children || '';
     },
   });
-  sandbox.defineComponent({
+  sandbox.component({
     name:'request',
     props:{
       method:{

@@ -58,7 +58,7 @@ export class Component<T = {}, D = {}, P = Component.Props<T>> {
     }
     return result
   }
-  parseChildren(template:string){
+  parseChildren(template:string):string{
     if(this.isClosing(template)) return ''
     const matched = template.match(/<[^>]+>([^<]*?)<\/[^?]+>/);
     if(!matched) return ''

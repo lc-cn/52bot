@@ -1,6 +1,0 @@
-- appid: '' # 机器人的appid
-  token: '' # 机器人的token
-  secret: '' # 机器人的secret
-  private: true # 如果没有私聊权限，请注释
-  group: true # 如果没有群聊权限，请注释
-  public: true # 如果是私域机器人，请注释

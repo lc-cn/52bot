@@ -43,9 +43,9 @@ guildManage
   .command('禁言 [user_id:user_id]')
   .permission('admin')
   .scope('guild')
-  .option('-t [time:number] 禁言时长,单位秒', 10)
+  .option('-t <time:number> 禁言时长,单位秒', 10)
   .action<QQAdapter>(async ({bot, message, options }, user_id) => {
-    const result = await bot.muteGuildMember(message.original?.guild_id as string, user_id, options.time as number);
+    const result = await bot.muteGuildMember(message.original?.guild_id as string, user_id, options.time);
     return result ? `已将(${user_id})禁言时长设为${options.time}秒` : '禁言失败';
   });
 export default guildManage;
